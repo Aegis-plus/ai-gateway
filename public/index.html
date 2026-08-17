@@ -547,30 +547,6 @@
     color: var(--muted);
   }
 
-  /* Playground */
-  .playground-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-  }
-  @media (max-width: 860px) {
-    .playground-container { grid-template-columns: 1fr; }
-  }
-  .chat-box {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 14px;
-    min-height: 280px;
-    max-height: 480px;
-    overflow-y: auto;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    line-height: 1.6;
-    white-space: pre-wrap;
-    color: var(--text-sub);
-  }
-
   /* Code Block Snippet */
   code, pre {
     font-family: var(--font-mono);
@@ -635,7 +611,6 @@
       <button data-tab="accounts" class="active">📊 Overview</button>
       <button data-tab="login">⚡ Add Account</button>
       <button data-tab="models">🤖 Models</button>
-      <button data-tab="playground">🧪 Playground</button>
       <button data-tab="keys">🔑 API Keys</button>
       <button data-tab="settings">⚙️ Settings</button>
     </nav>
@@ -760,7 +735,7 @@
       <div class="card-header">
         <div>
           <div class="card-title">Supported Frontier Models</div>
-          <div class="card-subtitle">Click any model card to copy its ID or test it in the Playground.</div>
+          <div class="card-subtitle">Click any model card to copy its full model ID to your clipboard.</div>
         </div>
         <div class="catalog-filter">
           <input type="text" id="model-search" placeholder="Search models (e.g. claude-sonnet, gemini-3.7, gpt-5.6)..." style="width:280px;">
@@ -775,45 +750,7 @@
     </div>
   </section>
 
-  <!-- TAB 4: PLAYGROUND -->
-  <section id="tab-playground" style="display:none">
-    <div class="card">
-      <div class="card-header">
-        <div>
-          <div class="card-title">Live Testing Playground</div>
-          <div class="card-subtitle">Execute prompts against any gateway model with real-time streaming and latency metrics.</div>
-        </div>
-        <div class="form-row">
-          <select id="pg-model-select" style="width:240px;"></select>
-          <button class="primary" id="btn-pg-send">Run Prompt</button>
-        </div>
-      </div>
-
-      <div class="playground-container">
-        <div>
-          <div class="form-group">
-            <label>Prompt / Messages</label>
-            <textarea id="pg-input" style="height:200px;" placeholder="Type your test message here... (e.g. Write a TypeScript function that computes Fibonacci with memoization)"></textarea>
-          </div>
-          <div class="form-row" style="margin-top:10px;">
-            <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px;">
-              <input type="checkbox" id="pg-stream" checked> Enable Streaming
-            </label>
-            <span id="pg-metrics" class="metric-sub" style="font-family:var(--font-mono); margin-left:auto;"></span>
-          </div>
-        </div>
-
-        <div>
-          <div class="form-group">
-            <label>Model Response Stream</label>
-            <div id="pg-output" class="chat-box">Response will appear here in real time…</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- TAB 5: API KEYS & QUICK SETUP -->
+  <!-- TAB 4: API KEYS & QUICK SETUP -->
   <section id="tab-keys" style="display:none">
     <div class="card">
       <div class="card-header">
@@ -983,7 +920,6 @@ async function refreshState() {
     renderOverview();
     renderAccounts();
     renderCatalog();
-    renderPlaygroundModels();
     renderKeys();
     renderSettings();
   } catch (err) {
@@ -1232,8 +1168,7 @@ function renderCatalog() {
       </div>
     `;
     card.onclick = () => {
-      $('#pg-model-select').value = m.id;
-      switchTab('playground');
+      copyText(m.id);
     };
     box.appendChild(card);
   }
@@ -1241,94 +1176,6 @@ function renderCatalog() {
 
 $('#model-search').oninput = renderCatalog;
 $('#model-provider-filter').onchange = renderCatalog;
-
-// Playground Setup
-function renderPlaygroundModels() {
-  const sel = $('#pg-model-select');
-  if (!state.models || sel.children.length > 0) return;
-  sel.innerHTML = '';
-  for (const m of state.models) {
-    const opt = document.createElement('option');
-    opt.value = m.id;
-    opt.textContent = `${m.id} (${m.provider})`;
-    sel.appendChild(opt);
-  }
-}
-
-$('#btn-pg-send').onclick = async () => {
-  const model = $('#pg-model-select').value;
-  const prompt = $('#pg-input').value.trim();
-  const stream = $('#pg-stream').checked;
-  const out = $('#pg-output');
-  const metrics = $('#pg-metrics');
-
-  if (!prompt) {
-    notice('Please enter a prompt in the playground.', 'error');
-    return;
-  }
-
-  out.textContent = 'Connecting…\n';
-  metrics.textContent = '';
-  const startTime = Date.now();
-
-  try {
-    const res = await fetch('/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${adminKey() || 'sk-gw-playground'}`,
-        'X-Admin-Key': adminKey(),
-      },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'user', content: prompt }],
-        stream,
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      out.textContent = `Error (${res.status}): ${JSON.stringify(err, null, 2)}`;
-      return;
-    }
-
-    if (!stream) {
-      const json = await res.json();
-      const latency = Date.now() - startTime;
-      out.textContent = json.choices?.[0]?.message?.content || JSON.stringify(json, null, 2);
-      metrics.textContent = `Latency: ${latency}ms | Usage: ${json.usage?.total_tokens || 0} tokens`;
-    } else {
-      out.textContent = '';
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let totalChars = 0;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const dataStr = line.slice(6).trim();
-            if (dataStr === '[DONE]') continue;
-            try {
-              const parsed = JSON.parse(dataStr);
-              const delta = parsed.choices?.[0]?.delta?.content || '';
-              out.textContent += delta;
-              totalChars += delta.length;
-              out.scrollTop = out.scrollHeight;
-            } catch {}
-          }
-        }
-      }
-      const latency = Date.now() - startTime;
-      metrics.textContent = `Streaming complete in ${latency}ms (${totalChars} chars)`;
-    }
-  } catch (err) {
-    out.textContent = `Connection error: ${err.message}`;
-  }
-};
 
 // Kiro Login Handler
 $('#btn-add-kiro').onclick = async () => {
