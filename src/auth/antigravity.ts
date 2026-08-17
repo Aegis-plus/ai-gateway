@@ -251,6 +251,19 @@ export async function fetchAvailableModels(accessToken: string, projectId?: stri
 
 const refreshInFlight = new Map<AntigravityCreds, Promise<void>>();
 
+export async function forceRefreshToken(creds: AntigravityCreds): Promise<string> {
+  const { clientId, clientSecret } = getOAuthClient();
+  const tokens = await tokenExchange({
+    grant_type: 'refresh_token',
+    refresh_token: creds.refreshToken,
+    client_id: clientId,
+    client_secret: clientSecret,
+  });
+  creds.accessToken = tokens.access_token;
+  creds.expiresAt = Date.now() + (tokens.expires_in ?? 3600) * 1000;
+  return creds.accessToken;
+}
+
 export async function getValidAccessToken(creds: AntigravityCreds): Promise<string> {
   if (creds.expiresAt > Date.now() + 5 * 60_000) return creds.accessToken;
   let p = refreshInFlight.get(creds);

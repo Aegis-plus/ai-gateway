@@ -285,6 +285,11 @@ export async function getUsageLimits(creds: KiroCreds): Promise<KiroUsageLimits>
 
 const refreshInFlight = new Map<KiroCreds, Promise<void>>();
 
+export async function forceRefreshToken(creds: KiroCreds): Promise<string> {
+  await refreshKiro(creds);
+  return creds.accessToken;
+}
+
 export async function getValidAccessToken(creds: KiroCreds): Promise<string> {
   if (creds.expiresAt > Date.now() + 60_000) return creds.accessToken;
   let p = refreshInFlight.get(creds);
