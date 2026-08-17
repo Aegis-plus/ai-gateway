@@ -211,10 +211,10 @@ describe('resolveModel', () => {
     expect(m2).toMatchObject({ provider: 'kiro', upstream: 'claude-sonnet-4.5' });
 
     const m3 = resolveModel('gemini-3.7-flash');
-    expect(m3).toMatchObject({ provider: 'antigravity', upstream: 'gemini-3.6-flash-high' });
+    expect(m3).toMatchObject({ provider: 'antigravity', upstream: 'gemini-3.7-flash' });
 
     const m4 = resolveModel('claude-3.7-sonnet');
-    expect(m4).toMatchObject({ provider: 'kiro', upstream: 'claude-sonnet-4.5' });
+    expect(m4).toMatchObject({ provider: 'kiro', upstream: 'claude-3.7-sonnet' });
   });
 
   it('supports explicit provider prefixes', () => {
