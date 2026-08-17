@@ -10,16 +10,10 @@ import { ANTIGRAVITY_BASES, contentHeaders, getValidAccessToken } from '../auth/
 interface GeminiPart {
   text?: string;
   inlineData?: { mimeType: string; data: string };
-  functionCall?: {
-    name: string;
-    args: Record<string, unknown>;
-    thoughtSignature?: string;
-    thought_signature?: string;
-  };
+  functionCall?: { name: string; args: Record<string, unknown> };
   functionResponse?: { name: string; response: Record<string, unknown> };
   thought?: boolean;
   thoughtSignature?: string;
-  thought_signature?: string;
 }
 
 interface GeminiChunk {
@@ -246,11 +240,8 @@ export function toGeminiContents(messages: CoreRequest['messages']): { role: 'us
           functionCall: {
             name: block.name,
             args: normalizeArgs(block.input),
-            thoughtSignature: 'skip_thought_signature_validator',
-            thought_signature: 'skip_thought_signature_validator',
           },
           thoughtSignature: 'skip_thought_signature_validator',
-          thought_signature: 'skip_thought_signature_validator',
         });
       } else if (block.type === 'tool_result') {
         const functionName = toolIdToName.get(block.toolUseId) || block.toolUseId;

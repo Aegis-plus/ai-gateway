@@ -260,11 +260,8 @@ describe('toGeminiContents', () => {
     expect(modelParts[0]!.functionCall).toEqual({
       name: 'default_api:my',
       args: { arg: 1 },
-      thoughtSignature: 'skip_thought_signature_validator',
-      thought_signature: 'skip_thought_signature_validator',
     });
     expect(modelParts[0]!.thoughtSignature).toBe('skip_thought_signature_validator');
-    expect(modelParts[0]!.thought_signature).toBe('skip_thought_signature_validator');
 
     // Tool response turn: ID call_123 must be mapped to function name default_api:my
     const userParts = contents[2]!.parts;
