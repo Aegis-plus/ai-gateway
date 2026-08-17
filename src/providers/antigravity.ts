@@ -236,7 +236,7 @@ function normalizeArgs(input: unknown): Record<string, unknown> {
   return { value: input };
 }
 
-function toGeminiTools(tools?: CoreRequest['tools']): { tools?: unknown[]; toolConfig?: unknown } {
+export function toGeminiTools(tools?: CoreRequest['tools']): { tools?: unknown[]; toolConfig?: unknown } {
   if (!tools || tools.length === 0) return {};
   return {
     tools: [
@@ -244,12 +244,188 @@ function toGeminiTools(tools?: CoreRequest['tools']): { tools?: unknown[]; toolC
         functionDeclarations: tools.map((t) => ({
           name: t.name,
           description: t.description ?? '',
-          parameters: t.parameters,
+          parameters: cleanGeminiSchema(t.parameters),
         })),
       },
     ],
     toolConfig: { functionCallingConfig: { mode: 'VALIDATED' } },
   };
+}
+
+/**
+ * Sanitizes and normalizes standard JSON Schema (from OpenAI/Anthropic/agent frameworks)
+ * into Google Gemini protobuf Schema format.
+ *
+ * Handles:
+ * - Union type lists like `type: ["string", "null"]` -> `type: "STRING", nullable: true`
+ * - Unsupported proto fields ($schema, additionalProperties, title, $defs)
+ * - Array items requirement (Gemini requires `items` for ARRAY)
+ * - Property filtering on `required` (Gemini rejects required keys not present in properties)
+ * - Enum stringification
+ */
+export function cleanGeminiSchema(schema: unknown): Record<string, unknown> {
+  if (!schema || typeof schema !== 'object' || Array.isArray(schema)) {
+    return { type: 'OBJECT', properties: {} };
+  }
+
+  const cleaned = cleanSchemaNode(schema as Record<string, unknown>);
+  if (cleaned.type !== 'OBJECT') {
+    return { type: 'OBJECT', properties: { input: cleaned } };
+  }
+  if (!cleaned.properties) {
+    cleaned.properties = {};
+  }
+  return cleaned;
+}
+
+function cleanSchemaNode(node: Record<string, unknown>): Record<string, unknown> {
+  if (!node || typeof node !== 'object' || Array.isArray(node)) {
+    return { type: 'STRING' };
+  }
+
+  const out: Record<string, unknown> = {};
+
+  // 1. Resolve type and nullable
+  let nullable = node.nullable === true;
+  let rawType: unknown = node.type;
+
+  // JSON Schema allows type as array, e.g. ["string", "null"] or ["object", "string"]
+  if (Array.isArray(rawType)) {
+    const nonNullTypes = rawType.filter((t) => t !== 'null' && typeof t === 'string');
+    if (rawType.includes('null')) {
+      nullable = true;
+    }
+    rawType = nonNullTypes[0] ?? 'string';
+  }
+
+  let typeStr: string | undefined = typeof rawType === 'string' ? rawType.toUpperCase() : undefined;
+
+  // Infer missing type
+  if (!typeStr) {
+    if (node.properties && typeof node.properties === 'object') typeStr = 'OBJECT';
+    else if (node.items) typeStr = 'ARRAY';
+    else if (Array.isArray(node.enum) && node.enum.length > 0) typeStr = 'STRING';
+    else if (node.anyOf || node.oneOf) {
+      // Type can be inferred from variants
+    } else {
+      typeStr = 'OBJECT';
+    }
+  }
+
+  // Normalize typeStr to Gemini Proto Schema Type enum
+  if (typeStr) {
+    switch (typeStr) {
+      case 'STRING':
+      case 'NUMBER':
+      case 'INTEGER':
+      case 'BOOLEAN':
+      case 'ARRAY':
+      case 'OBJECT':
+        out.type = typeStr;
+        break;
+      case 'INT':
+        out.type = 'INTEGER';
+        break;
+      case 'FLOAT':
+      case 'DOUBLE':
+        out.type = 'NUMBER';
+        break;
+      case 'BOOL':
+        out.type = 'BOOLEAN';
+        break;
+      case 'DICT':
+      case 'MAP':
+        out.type = 'OBJECT';
+        break;
+      case 'LIST':
+        out.type = 'ARRAY';
+        break;
+      default:
+        out.type = 'STRING';
+    }
+  }
+
+  if (nullable) {
+    out.nullable = true;
+  }
+
+  if (typeof node.description === 'string' && node.description) {
+    out.description = node.description;
+  }
+
+  if (typeof node.format === 'string' && node.format) {
+    out.format = node.format;
+  }
+
+  // 2. Handle enum (Gemini proto requires repeated string)
+  if (Array.isArray(node.enum) && node.enum.length > 0) {
+    out.enum = node.enum.map((v) => String(v));
+    if (!out.type) out.type = 'STRING';
+  } else if (node.const !== undefined) {
+    out.enum = [String(node.const)];
+    if (!out.type) out.type = 'STRING';
+  }
+
+  // 3. Handle object properties & required
+  if (out.type === 'OBJECT' || node.properties) {
+    if (!out.type) out.type = 'OBJECT';
+    const props: Record<string, unknown> = {};
+    if (node.properties && typeof node.properties === 'object' && !Array.isArray(node.properties)) {
+      for (const [key, propSchema] of Object.entries(node.properties as Record<string, unknown>)) {
+        if (propSchema && typeof propSchema === 'object') {
+          props[key] = cleanSchemaNode(propSchema as Record<string, unknown>);
+        }
+      }
+    }
+    out.properties = props;
+
+    // Filter required keys so only defined properties are included (Gemini 400s on unknown required keys)
+    if (Array.isArray(node.required) && node.required.length > 0) {
+      const validReqs = node.required.filter((k) => typeof k === 'string' && k in props);
+      if (validReqs.length > 0) {
+        out.required = validReqs;
+      }
+    }
+  }
+
+  // 4. Handle array items (Gemini requires items for ARRAY)
+  if (out.type === 'ARRAY' || node.items) {
+    if (!out.type) out.type = 'ARRAY';
+    if (node.items) {
+      if (Array.isArray(node.items)) {
+        out.items = node.items.length > 0
+          ? cleanSchemaNode(node.items[0] as Record<string, unknown>)
+          : { type: 'STRING' };
+      } else if (typeof node.items === 'object') {
+        out.items = cleanSchemaNode(node.items as Record<string, unknown>);
+      } else {
+        out.items = { type: 'STRING' };
+      }
+    } else {
+      out.items = { type: 'STRING' };
+    }
+  }
+
+  // 5. Handle anyOf / oneOf
+  const variants = Array.isArray(node.anyOf) ? node.anyOf : Array.isArray(node.oneOf) ? node.oneOf : undefined;
+  if (variants && variants.length > 0) {
+    const cleanedVariants: Record<string, unknown>[] = [];
+    for (const v of variants) {
+      if (v && typeof v === 'object') {
+        const cleaned = cleanSchemaNode(v as Record<string, unknown>);
+        if (cleaned.type === 'STRING' && (v as any).type === 'null') {
+          out.nullable = true;
+        } else {
+          cleanedVariants.push(cleaned);
+        }
+      }
+    }
+    if (cleanedVariants.length > 0) {
+      out.anyOf = cleanedVariants;
+    }
+  }
+
+  return out;
 }
 
 function parseJsonSafe(text: string): GeminiChunk | undefined {

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { parseOpenAIRequest, buildOpenAICompletion } from '../src/openai.ts';
 import { parseAnthropicRequest, buildAnthropicMessage } from '../src/anthropic.ts';
 import { EventAggregator } from '../src/aggregate.ts';
+import { cleanGeminiSchema } from '../src/providers/antigravity.ts';
 import type { ProviderEvent } from '../src/types.ts';
 
 describe('parseOpenAIRequest', () => {
@@ -129,5 +130,73 @@ describe('aggregation and rendering', () => {
     expect(out.stop_reason).toBe('tool_use');
     expect(out.content[0].type).toBe('text');
     expect(out.content[1]).toMatchObject({ type: 'tool_use', id: 'call_1', name: 'read_file', input: { path: '/text.txt' } });
+  });
+});
+
+describe('cleanGeminiSchema and toGeminiTools', () => {
+  it('handles union type lists such as ["string", "null"] in nested properties', () => {
+    const rawSchema = {
+      type: 'object',
+      title: 'SearchTool',
+      additionalProperties: false,
+      properties: {
+        filters: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              field: { type: 'string' },
+              operator: { type: 'string', enum: ['eq', 'neq'] },
+              value: { type: ['string', 'null'], description: 'optional filter value' },
+            },
+            required: ['field', 'operator', 'value', 'nonExistentField'],
+          },
+        },
+      },
+      required: ['filters'],
+    };
+
+    const cleaned = cleanGeminiSchema(rawSchema);
+
+    expect(cleaned.type).toBe('OBJECT');
+    expect((cleaned as any).title).toBeUndefined();
+    expect((cleaned as any).additionalProperties).toBeUndefined();
+
+    const filters = (cleaned.properties as any).filters;
+    expect(filters.type).toBe('ARRAY');
+    expect(filters.items.type).toBe('OBJECT');
+
+    const valProp = filters.items.properties.value;
+    expect(valProp.type).toBe('STRING');
+    expect(valProp.nullable).toBe(true);
+    expect(valProp.description).toBe('optional filter value');
+
+    // nonExistentField must be stripped from required
+    expect(filters.items.required).toEqual(['field', 'operator', 'value']);
+  });
+
+  it('supplies default items for array if missing', () => {
+    const rawSchema = {
+      type: 'object',
+      properties: {
+        tags: { type: 'array' },
+      },
+    };
+    const cleaned = cleanGeminiSchema(rawSchema);
+    expect((cleaned.properties as any).tags.items).toEqual({ type: 'STRING' });
+  });
+
+  it('normalizes enums to string arrays and const to enum', () => {
+    const rawSchema = {
+      type: 'object',
+      properties: {
+        numChoice: { enum: [1, 2, 3] },
+        fixedVal: { const: 'exact' },
+      },
+    };
+    const cleaned = cleanGeminiSchema(rawSchema);
+    expect((cleaned.properties as any).numChoice.enum).toEqual(['1', '2', '3']);
+    expect((cleaned.properties as any).fixedVal.enum).toEqual(['exact']);
   });
 });
