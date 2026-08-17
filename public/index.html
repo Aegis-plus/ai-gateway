@@ -1066,6 +1066,7 @@ function renderAccounts() {
       }
     }
     if (a.quota?.antigravity) {
+      const g = a.quota.antigravity;
       const allBuckets = g.buckets || [];
       
       let geminiBuckets = allBuckets.filter((b) => b.category === 'gemini');
