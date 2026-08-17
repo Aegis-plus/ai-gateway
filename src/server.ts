@@ -44,7 +44,11 @@ export function createGatewayServer(store: Store): ReturnType<typeof createServe
     // ---------- dashboard ----------
     if (method === 'GET' && (path === '/' || path === '/index.html')) {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-      res.end(dashboardHtml);
+      try {
+        res.end(readFileSync(join(publicDir, 'index.html'), 'utf8'));
+      } catch {
+        res.end(dashboardHtml);
+      }
       return;
     }
 

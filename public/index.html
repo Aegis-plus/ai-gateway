@@ -3,153 +3,890 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AI Gateway</title>
+<title>AI Gateway · Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --border: #2a2f3a;
-    --text: #e6e9ef; --muted: #8b93a3; --accent: #5b9dff; --green: #4ade80;
-    --red: #f87171; --amber: #fbbf24; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --bg: #090a0f;
+    --panel: #11141d;
+    --panel-sub: #161a26;
+    --panel-hover: #1c2232;
+    --border: #23293b;
+    --border-light: #323b54;
+    --text: #f1f5f9;
+    --text-sub: #cbd5e1;
+    --muted: #64748b;
+    --accent: #38bdf8;
+    --accent-hover: #0ea5e9;
+    --accent-dim: rgba(56, 189, 248, 0.12);
+    --kiro: #f59e0b;
+    --kiro-dim: rgba(245, 158, 11, 0.12);
+    --agy: #38bdf8;
+    --agy-dim: rgba(56, 189, 248, 0.12);
+    --green: #10b981;
+    --green-dim: rgba(16, 185, 129, 0.12);
+    --red: #f43f5e;
+    --red-dim: rgba(244, 63, 94, 0.12);
+    --amber: #f59e0b;
+    --amber-dim: rgba(245, 158, 11, 0.12);
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --radius: 10px;
+    --shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
   }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, sans-serif; }
-  header { display: flex; align-items: center; gap: 14px; padding: 14px 22px; border-bottom: 1px solid var(--border); background: var(--panel); }
-  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
-  header .sub { color: var(--muted); font-size: 12px; }
-  nav { display: flex; gap: 4px; margin-left: auto; }
-  nav button { background: none; border: 1px solid transparent; color: var(--muted); padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; }
-  nav button.active { background: var(--panel2); color: var(--text); border-color: var(--border); }
-  main { max-width: 960px; margin: 0 auto; padding: 24px 22px 80px; }
-  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
-  .card h2 { font-size: 14px; margin: 0 0 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
-  button.primary { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 8px 16px; cursor: pointer; font-size: 13px; font-weight: 500; }
-  button.primary:hover { filter: brightness(1.1); }
-  button.ghost { background: none; border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 12px; }
-  button.ghost:hover { border-color: var(--accent); }
-  button.danger { color: var(--red); }
-  .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--border); color: var(--muted); }
-  .badge.kiro { color: #f59e0b; border-color: #7c5a1255; }
-  .badge.antigravity { color: #8ab4f8; border-color: #8ab4f855; }
-  .badge.ok { color: var(--green); border-color: #4ade8055; }
-  .badge.cooldown { color: var(--amber); border-color: #fbbf2455; }
-  .badge.expired { color: var(--red); border-color: #f8717155; }
-  .account { border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 12px; background: var(--panel2); }
-  .account .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .account .email { font-weight: 600; }
-  .account .meta { color: var(--muted); font-size: 12px; }
-  .account .actions { margin-left: auto; display: flex; gap: 6px; }
-  .quota { margin-top: 10px; display: grid; gap: 6px; }
-  .qrow { display: grid; grid-template-columns: 200px 1fr 130px; gap: 10px; align-items: center; font-size: 12px; }
-  .qrow .label { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .bar { height: 8px; background: #0b0d11; border-radius: 99px; overflow: hidden; border: 1px solid var(--border); }
-  .bar > div { height: 100%; border-radius: 99px; background: var(--green); transition: width .3s; }
-  .bar > div.warn { background: var(--amber); }
-  .bar > div.crit { background: var(--red); }
-  .qrow .val { text-align: right; color: var(--muted); font-family: var(--mono); font-size: 11px; }
-  input[type=text], input[type=password], input[type=number], textarea {
-    background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 8px 10px; font-size: 13px; font-family: inherit;
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
   }
-  textarea { width: 100%; min-height: 90px; font-family: var(--mono); font-size: 11px; }
-  .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
-  .field label { font-size: 12px; color: var(--muted); }
-  .field .hint { font-size: 11px; color: var(--muted); }
-  code { font-family: var(--mono); font-size: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px; word-break: break-all; }
-  .keyrow { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
-  .keyrow:last-child { border-bottom: none; }
-  .keyrow .name { font-weight: 600; min-width: 120px; }
-  .notice { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; display: none; }
-  .notice.error { display: block; background: #3d1517; color: #fca5a5; border: 1px solid #7f1d1d55; }
-  .notice.info { display: block; background: #12233d; color: #93c5fd; border: 1px solid #1e3a8a55; }
-  .devicebox { text-align: center; padding: 20px; }
-  .devicebox .code { font-size: 28px; letter-spacing: .2em; font-family: var(--mono); margin: 12px 0; color: var(--accent); }
-  .muted { color: var(--muted); }
-  .empty { color: var(--muted); text-align: center; padding: 24px 0; }
-  a { color: var(--accent); }
+
+  /* Header */
+  header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(12px);
+  }
+  .header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: inherit;
+  }
+  .brand-logo {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #0284c7, #38bdf8);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 18px;
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(56, 189, 248, 0.3);
+  }
+  .brand-text h1 {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+  .brand-text .status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .ping-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    display: inline-block;
+  }
+
+  /* Navigation Tabs */
+  nav {
+    display: flex;
+    gap: 4px;
+    background: var(--bg);
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  nav button {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    padding: 7px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  nav button:hover {
+    color: var(--text-sub);
+    background: var(--panel-sub);
+  }
+  nav button.active {
+    background: var(--panel-sub);
+    color: var(--accent);
+    border: 1px solid var(--border-light);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Main Layout */
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+    flex: 1;
+    width: 100%;
+  }
+
+  /* Notifications */
+  .notice {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 20px;
+    display: none;
+    animation: fadeIn 0.2s ease;
+  }
+  .notice.show { display: flex; align-items: center; justify-content: space-between; }
+  .notice.error { background: var(--red-dim); color: #fca5a5; border: 1px solid rgba(244, 63, 94, 0.3); }
+  .notice.info { background: var(--accent-dim); color: #bae6fd; border: 1px solid rgba(56, 189, 248, 0.3); }
+  .notice.success { background: var(--green-dim); color: #a7f3d0; border: 1px solid rgba(16, 185, 129, 0.3); }
+
+  /* Metrics Summary Bar */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .metric-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: border-color 0.2s;
+  }
+  .metric-card:hover { border-color: var(--border-light); }
+  .metric-label { font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+  .metric-value { font-size: 24px; font-weight: 700; color: var(--text); font-family: var(--font-mono); }
+  .metric-sub { font-size: 11px; color: var(--muted); }
+
+  /* Cards */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* Buttons */
+  button.primary {
+    background: var(--accent);
+    color: #04131f;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  button.primary:hover {
+    background: var(--accent-hover);
+    box-shadow: 0 2px 10px rgba(56, 189, 248, 0.3);
+  }
+  button.ghost {
+    background: var(--panel-sub);
+    border: 1px solid var(--border);
+    color: var(--text-sub);
+    border-radius: 6px;
+    padding: 7px 14px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: inherit;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  button.ghost:hover {
+    background: var(--panel-hover);
+    border-color: var(--border-light);
+    color: var(--text);
+  }
+  button.danger {
+    color: var(--red);
+  }
+  button.danger:hover {
+    background: var(--red-dim);
+    border-color: rgba(244, 63, 94, 0.4);
+  }
+
+  /* Form Elements */
+  input[type=text], input[type=password], input[type=number], select, textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 9px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    transition: border-color 0.15s ease;
+    width: 100%;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-dim);
+  }
+  textarea {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    min-height: 100px;
+    resize: vertical;
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .form-group label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-sub);
+  }
+  .form-group .hint {
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .form-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  /* Badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    font-family: var(--font-mono);
+  }
+  .badge.kiro { background: var(--kiro-dim); color: var(--kiro); border-color: rgba(245, 158, 11, 0.3); }
+  .badge.antigravity { background: var(--agy-dim); color: var(--agy); border-color: rgba(56, 189, 248, 0.3); }
+  .badge.ok { background: var(--green-dim); color: var(--green); border-color: rgba(16, 185, 129, 0.3); }
+  .badge.cooldown { background: var(--amber-dim); color: var(--amber); border-color: rgba(245, 158, 11, 0.3); }
+  .badge.expired { background: var(--red-dim); color: var(--red); border-color: rgba(244, 63, 94, 0.3); }
+
+  /* Account Card */
+  .account-item {
+    background: var(--panel-sub);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: all 0.2s ease;
+  }
+  .account-item:hover {
+    border-color: var(--border-light);
+    background: var(--panel-hover);
+  }
+  .account-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .account-identity {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .account-email {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 14px;
+  }
+  .account-stats {
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .account-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  /* Quota Progress Meter */
+  .quota-section {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    display: grid;
+    gap: 8px;
+  }
+  .qmeter {
+    display: grid;
+    grid-template-columns: 220px 1fr 140px;
+    gap: 12px;
+    align-items: center;
+    font-size: 12px;
+  }
+  .qmeter-label {
+    color: var(--text-sub);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .bar-container {
+    height: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: var(--green);
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .bar-fill.warn { background: var(--amber); }
+  .bar-fill.crit { background: var(--red); }
+  .qmeter-val {
+    text-align: right;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  /* Login Flow Box */
+  .login-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+  }
+  .login-box {
+    background: var(--panel-sub);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .login-box h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .login-box p {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .device-prompt {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    margin-top: 14px;
+    display: none;
+  }
+  .device-code {
+    font-family: var(--font-mono);
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    margin: 12px 0;
+    user-select: all;
+  }
+
+  /* Model Catalog Explorer */
+  .catalog-filter {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .catalog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 12px;
+  }
+  .model-card {
+    background: var(--panel-sub);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .model-card:hover {
+    border-color: var(--accent);
+    background: var(--panel-hover);
+    transform: translateY(-1px);
+  }
+  .model-id {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    word-break: break-all;
+  }
+  .model-desc {
+    font-size: 12px;
+    color: var(--muted);
+    margin: 6px 0 10px;
+  }
+  .model-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* Playground */
+  .playground-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 860px) {
+    .playground-container { grid-template-columns: 1fr; }
+  }
+  .chat-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    min-height: 280px;
+    max-height: 480px;
+    overflow-y: auto;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    color: var(--text-sub);
+  }
+
+  /* Code Block Snippet */
+  code, pre {
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+  .code-snippet {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    position: relative;
+    overflow-x: auto;
+  }
+  .code-snippet pre {
+    margin: 0;
+    color: #e2e8f0;
+  }
+  .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 32px 16px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  /* Animation */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+  .spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
+
 <header>
-  <h1>⚡ AI Gateway</h1>
-  <span class="sub">Kiro + Antigravity · <span id="accountCount">0 accounts</span></span>
-  <nav>
-    <button data-tab="accounts" class="active">Accounts</button>
-    <button data-tab="keys">API Keys</button>
-    <button data-tab="settings">Settings</button>
-  </nav>
+  <div class="header-inner">
+    <a href="#" class="brand" onclick="switchTab('accounts'); return false;">
+      <div class="brand-logo">⚡</div>
+      <div class="brand-text">
+        <h1>AI Gateway</h1>
+        <div class="status-indicator">
+          <span class="ping-dot"></span>
+          <span id="gateway-status">Active Pool</span>
+        </div>
+      </div>
+    </a>
+
+    <nav>
+      <button data-tab="accounts" class="active">📊 Overview</button>
+      <button data-tab="login">⚡ Add Account</button>
+      <button data-tab="models">🤖 Models</button>
+      <button data-tab="playground">🧪 Playground</button>
+      <button data-tab="keys">🔑 API Keys</button>
+      <button data-tab="settings">⚙️ Settings</button>
+    </nav>
+  </div>
 </header>
+
 <main>
   <div id="notice" class="notice"></div>
 
-  <!-- Accounts -->
+  <!-- TAB 1: ACCOUNTS & OVERVIEW -->
   <section id="tab-accounts">
-    <div class="card">
-      <h2>Add account</h2>
-      <div class="row">
-        <button class="primary" id="btn-add-kiro">+ Kiro account</button>
-        <button class="primary" id="btn-add-agy">+ Antigravity account (Google)</button>
-        <span class="muted" style="font-size:12px">Kiro uses a device code you approve at view.awsapps.com; Antigravity opens Google sign-in.</span>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <span class="metric-label">Total Accounts</span>
+        <span class="metric-value" id="m-accounts">0</span>
+        <span class="metric-sub" id="m-accounts-sub">0 Kiro · 0 Antigravity</span>
       </div>
-      <div id="kiro-login" style="display:none; margin-top:14px"></div>
-      <details style="margin-top:14px">
-        <summary class="muted" style="cursor:pointer; font-size:12px">Import existing Kiro IDE token instead</summary>
-        <div style="margin-top:10px">
-          <textarea id="kiro-token" placeholder='Paste ~/.aws/sso/cache/kiro-auth-token.json contents here'></textarea>
-          <div class="row" style="margin-top:8px"><button class="ghost" id="btn-import-kiro">Import token</button></div>
+      <div class="metric-card">
+        <span class="metric-label">Total Requests</span>
+        <span class="metric-value" id="m-requests">0</span>
+        <span class="metric-sub">Served through gateway</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Total Errors</span>
+        <span class="metric-value" id="m-errors" style="color:var(--red);">0</span>
+        <span class="metric-sub" id="m-err-rate">0.0% failure rate</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Catalog Models</span>
+        <span class="metric-value" id="m-models">0</span>
+        <span class="metric-sub">Frontier frontier LLMs</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Connected Accounts &amp; Live Quota</div>
+          <div class="card-subtitle">Accounts are automatically rotated with single-flight locking and intelligent fallback.</div>
         </div>
-      </details>
-    </div>
-    <div class="card">
-      <h2>Accounts &amp; quota</h2>
-      <div id="accounts"><div class="empty">Loading…</div></div>
-      <div class="row"><button class="ghost" id="btn-refresh-quota">↻ Refresh all quotas</button></div>
-    </div>
-    <div class="card">
-      <h2>Backup &amp; restore</h2>
-      <p class="muted" style="font-size:12px; margin-top:0">Backups contain refresh tokens — store them like passwords. Restoring merges accounts and skips duplicates.</p>
-      <div class="row" style="margin-bottom:10px">
-        <input type="password" id="backup-pass" placeholder="Optional passphrase (encrypts the backup)" style="width:280px">
-        <button class="primary" id="btn-backup">⭳ Download backup</button>
+        <div class="form-row">
+          <button class="ghost" id="btn-refresh-quota">↻ Refresh Quotas</button>
+          <button class="primary" onclick="switchTab('login')">+ Connect New Account</button>
+        </div>
       </div>
-      <div class="row">
-        <input type="file" id="restore-file" accept=".json,application/json" style="display:none">
-        <button class="ghost" id="btn-restore">⭱ Restore backup…</button>
-        <input type="password" id="restore-pass" placeholder="Passphrase (if encrypted)" style="width:220px">
-      </div>
-      <div id="restore-result" style="margin-top:10px"></div>
+      <div id="accounts-list"><div class="empty-state">Loading accounts…</div></div>
     </div>
   </section>
 
-  <!-- API keys -->
+  <!-- TAB 2: ADD ACCOUNT (LOGIN FLOWS) -->
+  <section id="tab-login" style="display:none">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Connect Provider Account</div>
+          <div class="card-subtitle">Authenticate Kiro (AWS CodeWhisperer) or Google Antigravity to add them to your pool.</div>
+        </div>
+      </div>
+
+      <div class="login-grid">
+        <!-- Kiro Device Login -->
+        <div class="login-box">
+          <div>
+            <h3><span class="badge kiro">Kiro</span> AWS Builder ID Device Login</h3>
+            <p>Connect your AWS Builder ID via standard SSO device authorization. No local credentials required.</p>
+          </div>
+          <button class="primary" id="btn-add-kiro" style="background:#f59e0b; color:#000;">
+            Start Kiro Device Login
+          </button>
+          <div id="kiro-login-prompt" class="device-prompt">
+            <div class="form-group">
+              <label>1. Copy your verification code:</label>
+              <div class="device-code" id="kiro-user-code">----</div>
+            </div>
+            <div class="form-group">
+              <label>2. Open AWS authorization page:</label>
+              <a id="kiro-auth-url" href="#" target="_blank" rel="noopener" class="ghost" style="display:inline-block; margin-top:4px; text-decoration:none;">
+                Open AWS Sign-in &rarr;
+              </a>
+            </div>
+            <div id="kiro-status-text" class="metric-sub" style="margin-top:12px;">
+              <span class="spinner"></span> Waiting for confirmation…
+            </div>
+          </div>
+        </div>
+
+        <!-- Google Antigravity OAuth -->
+        <div class="login-box">
+          <div>
+            <h3><span class="badge antigravity">Antigravity</span> Google Account (Cloud Code)</h3>
+            <p>Authorize with your Google Account to access Gemini 3.7/3.6/3.5 Flash, Gemini 3.1 Pro, and Claude on GCP.</p>
+          </div>
+          <button class="primary" id="btn-add-agy">
+            Sign in with Google
+          </button>
+          <div class="metric-sub" style="margin-top:14px; font-size:11px;">
+            Opens Google OAuth in a popup/tab. Once authorized, the gateway automatically registers and initializes your Code Assist project.
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:24px; padding-top:18px; border-top:1px solid var(--border);">
+        <details>
+          <summary style="cursor:pointer; color:var(--text-sub); font-size:13px; font-weight:500;">
+            &rarr; Advanced: Import Existing Kiro IDE Token (JSON)
+          </summary>
+          <div style="margin-top:12px;">
+            <p class="form-group hint">Paste the contents of <code>~/.aws/sso/cache/kiro-auth-token.json</code> or exported AWS session:</p>
+            <textarea id="kiro-token-input" placeholder='{"accessToken": "...", "refreshToken": "..."}'></textarea>
+            <div style="margin-top:8px;">
+              <button class="ghost" id="btn-import-kiro">Import Token JSON</button>
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 3: MODEL CATALOG EXPLORER -->
+  <section id="tab-models" style="display:none">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Supported Frontier Models</div>
+          <div class="card-subtitle">Click any model card to copy its ID or test it in the Playground.</div>
+        </div>
+        <div class="catalog-filter">
+          <input type="text" id="model-search" placeholder="Search models (e.g. claude-sonnet, gemini-3.7, gpt-5.6)..." style="width:280px;">
+          <select id="model-provider-filter" style="width:160px;">
+            <option value="all">All Providers</option>
+            <option value="kiro">Kiro (AWS)</option>
+            <option value="antigravity">Antigravity (Google)</option>
+          </select>
+        </div>
+      </div>
+      <div id="catalog-list" class="catalog-grid"></div>
+    </div>
+  </section>
+
+  <!-- TAB 4: PLAYGROUND -->
+  <section id="tab-playground" style="display:none">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Live Testing Playground</div>
+          <div class="card-subtitle">Execute prompts against any gateway model with real-time streaming and latency metrics.</div>
+        </div>
+        <div class="form-row">
+          <select id="pg-model-select" style="width:240px;"></select>
+          <button class="primary" id="btn-pg-send">Run Prompt</button>
+        </div>
+      </div>
+
+      <div class="playground-container">
+        <div>
+          <div class="form-group">
+            <label>Prompt / Messages</label>
+            <textarea id="pg-input" style="height:200px;" placeholder="Type your test message here... (e.g. Write a TypeScript function that computes Fibonacci with memoization)"></textarea>
+          </div>
+          <div class="form-row" style="margin-top:10px;">
+            <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px;">
+              <input type="checkbox" id="pg-stream" checked> Enable Streaming
+            </label>
+            <span id="pg-metrics" class="metric-sub" style="font-family:var(--font-mono); margin-left:auto;"></span>
+          </div>
+        </div>
+
+        <div>
+          <div class="form-group">
+            <label>Model Response Stream</label>
+            <div id="pg-output" class="chat-box">Response will appear here in real time…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 5: API KEYS & QUICK SETUP -->
   <section id="tab-keys" style="display:none">
     <div class="card">
-      <h2>Create API key</h2>
-      <div class="row">
-        <input type="text" id="keyname" placeholder="e.g. cline-laptop" style="width:240px">
-        <button class="primary" id="btn-make-key">Generate key</button>
+      <div class="card-header">
+        <div>
+          <div class="card-title">Create Gateway API Key</div>
+          <div class="card-subtitle">Generate bearer keys for your local coding agents (Claude Code, Cursor, Cline, Roo Code, etc.).</div>
+        </div>
       </div>
-      <div id="newkey" style="margin-top:12px"></div>
+      <div class="form-row">
+        <input type="text" id="key-name-input" placeholder="Key description (e.g. macbook-cursor, claude-code-dev)" style="width:280px;">
+        <button class="primary" id="btn-create-key">Generate Key</button>
+      </div>
+      <div id="new-key-banner" style="margin-top:14px;"></div>
     </div>
+
     <div class="card">
-      <h2>Keys</h2>
-      <div id="keys"><div class="empty">Loading…</div></div>
-      <p class="muted" style="font-size:12px">Use with OpenAI-compatible tools: base URL <code>/v1</code>; with Claude Code: <code>ANTHROPIC_BASE_URL=/</code> pointing here and <code>/v1/messages</code>.</p>
+      <div class="card-header">
+        <div>
+          <div class="card-title">Quick Integration Snippets</div>
+          <div class="card-subtitle">Copy-paste configuration for your favorite AI developer tools.</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Claude Code (`~/.claude.json` or Shell Export):</label>
+        <div class="code-snippet">
+          <pre>export ANTHROPIC_BASE_URL="http://127.0.0.1:8787"
+export ANTHROPIC_API_KEY="sk-gw-your-api-key"
+export ANTHROPIC_MODEL="kiro/claude-sonnet-4.5"</pre>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top:16px;">
+        <label>Cursor / Cline / Roo Code / Continue (OpenAI Compatible):</label>
+        <div class="code-snippet">
+          <pre>Base URL : http://127.0.0.1:8787/v1
+API Key  : sk-gw-your-api-key
+Model    : kiro/claude-sonnet-4.5  OR  agy/gemini-3.7-flash</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Active API Keys (<span id="key-count">0</span>)</div>
+      </div>
+      <div id="keys-list"><div class="empty-state">No keys configured yet.</div></div>
     </div>
   </section>
 
-  <!-- Settings -->
+  <!-- TAB 6: SETTINGS & BACKUP -->
   <section id="tab-settings" style="display:none">
     <div class="card">
-      <h2>Settings</h2>
-      <div class="field"><label>Public base URL (for Antigravity OAuth redirect; leave empty for localhost)</label>
-        <input type="text" id="set-baseurl" placeholder="https://gateway.example.com"></div>
-      <div class="field"><label>Dashboard password (optional)</label>
-        <input type="password" id="set-adminpass" placeholder="empty = no password (local use)">
-        <span class="hint">Protects /admin/api. After setting it, enter the same password when prompted.</span></div>
-      <div class="row">
-        <div class="field" style="flex:1"><label>Port</label><input type="number" id="set-port"></div>
-        <div class="field" style="flex:1"><label>Bind host</label><input type="text" id="set-host" placeholder="127.0.0.1"></div>
+      <div class="card-header">
+        <div>
+          <div class="card-title">Gateway Configuration</div>
+          <div class="card-subtitle">Server networking and security settings.</div>
+        </div>
+        <button class="primary" id="btn-save-settings">Save Settings</button>
       </div>
-      <div class="row"><button class="primary" id="btn-save-settings">Save settings</button><span class="muted" id="settings-note" style="font-size:12px"></span></div>
+
+      <div class="form-group">
+        <label>Public Base URL (Optional)</label>
+        <input type="text" id="set-baseurl" placeholder="https://gateway.example.com (leave empty for localhost)">
+        <span class="hint">Required only if hosting behind a custom domain or reverse proxy for OAuth callbacks.</span>
+      </div>
+
+      <div class="form-group">
+        <label>Admin Dashboard Password (Optional)</label>
+        <input type="password" id="set-adminpass" placeholder="Leave empty for open local access">
+        <span class="hint">Protects the `/admin/*` API endpoints. Saved in your browser session.</span>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group" style="flex:1;">
+          <label>Port</label>
+          <input type="number" id="set-port" placeholder="8787">
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>Bind Host</label>
+          <input type="text" id="set-host" placeholder="127.0.0.1">
+        </div>
+      </div>
+      <div id="settings-status" class="metric-sub"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Encrypted Backup &amp; Restore</div>
+          <div class="card-subtitle">Securely export or restore all connected accounts and configuration.</div>
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-bottom:14px;">
+        <input type="password" id="backup-pass" placeholder="Passphrase to encrypt backup (optional)" style="width:280px;">
+        <button class="primary" id="btn-backup-download">⭳ Download Backup JSON</button>
+      </div>
+
+      <div class="form-row">
+        <input type="file" id="restore-file-input" accept=".json,application/json" style="display:none;">
+        <button class="ghost" id="btn-restore-browse">⭱ Select Backup File to Restore…</button>
+        <input type="password" id="restore-pass-input" placeholder="Passphrase (if backup was encrypted)" style="width:280px;">
+      </div>
+      <div id="restore-result-box" style="margin-top:12px;"></div>
     </div>
   </section>
 </main>
@@ -160,11 +897,20 @@ const $ = (sel) => document.querySelector(sel);
 const adminKey = () => localStorage.getItem('gw_admin_key') || '';
 const headers = () => ({ 'Content-Type': 'application/json', 'X-Admin-Key': adminKey() });
 
+let state = null;
+let kiroPollTimer = null;
+
 function notice(msg, kind = 'info') {
   const el = $('#notice');
   el.textContent = msg;
-  el.className = 'notice ' + kind;
-  if (kind === 'info') setTimeout(() => (el.className = 'notice'), 5000);
+  el.className = 'notice show ' + kind;
+  if (kind === 'info' || kind === 'success') {
+    setTimeout(() => { el.className = 'notice'; }, 6000);
+  }
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 async function api(method, path, body) {
@@ -174,7 +920,7 @@ async function api(method, path, body) {
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (res.status === 401) {
-    const pass = prompt('Dashboard password:');
+    const pass = prompt('Gateway Admin Password:');
     if (pass !== null) {
       localStorage.setItem('gw_admin_key', pass);
       return api(method, path, body);
@@ -182,39 +928,41 @@ async function api(method, path, body) {
     throw new Error('unauthorized');
   }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || res.statusText);
+  if (!res.ok) throw new Error(data.error?.message || data.error || res.statusText);
   return data;
 }
 
-// ---------- tabs ----------
+// Navigation Tabs
+function switchTab(tabId) {
+  document.querySelectorAll('nav button').forEach((b) => b.classList.toggle('active', b.dataset.tab === tabId));
+  document.querySelectorAll('main section').forEach((s) => (s.style.display = 'none'));
+  const target = $('#tab-' + tabId);
+  if (target) target.style.display = 'block';
+}
+
 document.querySelectorAll('nav button').forEach((btn) => {
-  btn.onclick = () => {
-    document.querySelectorAll('nav button').forEach((b) => b.classList.toggle('active', b === btn));
-    document.querySelectorAll('main section').forEach((s) => (s.style.display = 'none'));
-    $('#tab-' + btn.dataset.tab).style.display = 'block';
-  };
+  btn.onclick = () => switchTab(btn.dataset.tab);
 });
 
-// ---------- state ----------
-let state = null;
-
+// State Refresher
 async function refreshState() {
   try {
     state = await api('GET', '/admin/api/state');
+    renderOverview();
     renderAccounts();
+    renderCatalog();
+    renderPlaygroundModels();
     renderKeys();
     renderSettings();
-    $('#accountCount').textContent =
-      `${state.accounts.length} accounts · ${state.accounts.filter((a) => a.provider === 'kiro').length} kiro · ${state.accounts.filter((a) => a.provider === 'antigravity').length} antigravity`;
   } catch (err) {
-    if (err.message !== 'unauthorized') notice('Failed to load state: ' + err.message, 'error');
+    if (err.message !== 'unauthorized') notice('Failed to sync gateway state: ' + err.message, 'error');
   }
 }
 
 function fmtWhen(ts) {
   if (!ts) return '';
   const ms = ts - Date.now();
-  if (ms <= 0) return 'now';
+  if (ms <= 0) return 'ready';
   const mins = Math.ceil(ms / 60000);
   if (mins < 60) return `in ${mins}m`;
   const hours = Math.ceil(mins / 60);
@@ -222,62 +970,92 @@ function fmtWhen(ts) {
   return `in ${Math.ceil(hours / 24)}d`;
 }
 
+function renderOverview() {
+  if (!state) return;
+  const kiroCount = state.accounts.filter((a) => a.provider === 'kiro').length;
+  const agyCount = state.accounts.filter((a) => a.provider === 'antigravity').length;
+  $('#m-accounts').textContent = state.accounts.length;
+  $('#m-accounts-sub').textContent = `${kiroCount} Kiro · ${agyCount} Antigravity`;
+
+  const totalReq = state.accounts.reduce((acc, a) => acc + (a.stats?.requests || 0), 0);
+  const totalErr = state.accounts.reduce((acc, a) => acc + (a.stats?.errors || 0), 0);
+  $('#m-requests').textContent = totalReq;
+  $('#m-errors').textContent = totalErr;
+  const rate = totalReq > 0 ? ((totalErr / totalReq) * 100).toFixed(1) : '0.0';
+  $('#m-err-rate').textContent = `${rate}% failure rate`;
+  $('#m-models').textContent = state.models?.length || 0;
+  $('#key-count').textContent = state.config?.keyCount || 0;
+}
+
 function renderAccounts() {
-  const box = $('#accounts');
-  if (!state.accounts.length) {
-    box.innerHTML = '<div class="empty">No accounts yet — add a Kiro or Antigravity account above.</div>';
+  const box = $('#accounts-list');
+  if (!state.accounts || !state.accounts.length) {
+    box.innerHTML = '<div class="empty-state">No provider accounts connected yet.<br><button class="primary" style="margin-top:12px;" onclick="switchTab(\'login\')">+ Connect Kiro or Antigravity</button></div>';
     return;
   }
   box.innerHTML = '';
   for (const a of state.accounts) {
     const el = document.createElement('div');
-    el.className = 'account';
+    el.className = 'account-item';
     const statusBadge =
       a.status.state === 'ok'
         ? '<span class="badge ok">active</span>'
         : a.status.state === 'expired'
           ? '<span class="badge expired">expired</span>'
           : `<span class="badge cooldown">cooldown ${fmtWhen(a.status.cooldownUntil)}</span>`;
+
     let quotaHtml = '';
     if (a.quota?.kiro) {
       const k = a.quota.kiro;
       for (const u of k.usage || []) {
         const pct = u.usageLimit > 0 ? Math.max(0, 100 - (u.currentUsage / u.usageLimit) * 100) : 100;
         const cls = pct < 10 ? 'crit' : pct < 35 ? 'warn' : '';
-        quotaHtml += `<div class="qrow"><span class="label">${esc(u.resourceType)} · ${esc(k.subscriptionType || '')}</span>
-          <div class="bar"><div class="${cls}" style="width:${pct}%"></div></div>
-          <span class="val">${(+u.currentUsage).toFixed(1)} / ${+u.usageLimit} left ${k.nextDateReset ? '· resets ' + new Date(k.nextDateReset * 1000).toLocaleDateString() : ''}</span></div>`;
+        quotaHtml += `<div class="qmeter">
+          <span class="qmeter-label">${esc(u.resourceType)} · ${esc(k.subscriptionType || 'CodeWhisperer')}</span>
+          <div class="bar-container"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
+          <span class="qmeter-val">${(+u.currentUsage).toFixed(1)} / ${+u.usageLimit} left</span>
+        </div>`;
       }
     }
     if (a.quota?.antigravity) {
       const g = a.quota.antigravity;
       if (g.credits !== undefined && g.credits !== null) {
-        quotaHtml += `<div class="qrow"><span class="label">Google One AI credits</span><div class="bar"><div style="width:100%"></div></div><span class="val">${g.credits}</span></div>`;
+        quotaHtml += `<div class="qmeter"><span class="qmeter-label">Google One AI Credits</span><div class="bar-container"><div class="bar-fill" style="width:100%"></div></div><span class="qmeter-val">${g.credits} credits</span></div>`;
       }
       for (const b of g.buckets || []) {
         const pct = Math.max(0, Math.min(100, (b.remainingFraction ?? 1) * 100));
         const cls = pct < 10 ? 'crit' : pct < 35 ? 'warn' : '';
-        quotaHtml += `<div class="qrow"><span class="label">${esc(b.displayName || b.bucketId)}</span>
-          <div class="bar"><div class="${cls}" style="width:${pct}%"></div></div>
-          <span class="val">${pct.toFixed(0)}% left${b.resetTime ? ' · ' + new Date(b.resetTime).toLocaleString() : ''}</span></div>`;
+        quotaHtml += `<div class="qmeter">
+          <span class="qmeter-label">${esc(b.displayName || b.bucketId)}</span>
+          <div class="bar-container"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
+          <span class="qmeter-val">${pct.toFixed(0)}% available</span>
+        </div>`;
       }
     }
-    if (!quotaHtml && a.quota?.checkedAt) quotaHtml = `<div class="muted" style="font-size:12px">No quota details returned.</div>`;
+
     el.innerHTML = `
-      <div class="top">
-        <span class="badge ${a.provider}">${a.provider}</span>
-        <span class="email">${esc(a.email || a.label || a.id.slice(0, 8))}</span>
-        ${statusBadge}
-        <span class="meta">${a.stats.requests} req · ${a.stats.errors} err${a.status.lastError ? ' · ' + esc(a.status.lastError.slice(0, 80)) : ''}</span>
-        <span class="actions">
-          <button class="ghost" data-act="quota" data-id="${a.id}">↻ quota</button>
-          <button class="ghost" data-act="token" data-id="${a.id}">↻ token</button>
-          <button class="ghost danger" data-act="del" data-id="${a.id}">remove</button>
-        </span>
+      <div class="account-top">
+        <div class="account-identity">
+          <span class="badge ${a.provider}">${a.provider === 'kiro' ? 'Kiro (AWS)' : 'Antigravity (GCP)'}</span>
+          <span class="account-email">${esc(a.email || a.label || a.id.slice(0, 10))}</span>
+          ${statusBadge}
+        </div>
+        <div class="account-stats">
+          <span>${a.stats.requests} req</span>
+          <span>${a.stats.errors} err</span>
+          ${a.status.lastError ? `<span style="color:var(--red);" title="${esc(a.status.lastError)}">⚠ ${esc(a.status.lastError.slice(0, 40))}…</span>` : ''}
+        </div>
+        <div class="account-actions">
+          <button class="ghost" data-act="quota" data-id="${a.id}" title="Refresh quota">↻ Quota</button>
+          <button class="ghost" data-act="token" data-id="${a.id}" title="Refresh OAuth token">↻ Token</button>
+          <button class="ghost danger" data-act="del" data-id="${a.id}" title="Remove account">Remove</button>
+        </div>
       </div>
-      ${quotaHtml ? `<div class="quota">${quotaHtml}</div>` : ''}`;
+      ${quotaHtml ? `<div class="quota-section">${quotaHtml}</div>` : ''}
+    `;
     box.appendChild(el);
   }
+
   box.querySelectorAll('button[data-act]').forEach((btn) => {
     btn.onclick = async () => {
       const id = btn.dataset.id;
@@ -285,10 +1063,13 @@ function renderAccounts() {
         if (btn.dataset.act === 'del') {
           if (!confirm('Remove this account from the gateway?')) return;
           await api('DELETE', '/admin/api/accounts/' + id);
+          notice('Account removed.');
         } else if (btn.dataset.act === 'quota') {
           await api('POST', `/admin/api/accounts/${id}/quota`);
+          notice('Quota refreshed.');
         } else if (btn.dataset.act === 'token') {
           await api('POST', `/admin/api/accounts/${id}/refresh-token`);
+          notice('Token refreshed successfully.');
         }
         refreshState();
       } catch (err) {
@@ -298,39 +1079,167 @@ function renderAccounts() {
   });
 }
 
-function esc(s) {
-  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Catalog Explorer
+function renderCatalog() {
+  const box = $('#catalog-list');
+  if (!state.models || !state.models.length) return;
+  const q = ($('#model-search').value || '').toLowerCase();
+  const filter = $('#model-provider-filter').value;
+
+  const filtered = state.models.filter((m) => {
+    if (filter !== 'all' && m.provider !== filter) return false;
+    if (!q) return true;
+    return m.id.toLowerCase().includes(q) || (m.description || '').toLowerCase().includes(q) || m.upstream.toLowerCase().includes(q);
+  });
+
+  box.innerHTML = '';
+  if (!filtered.length) {
+    box.innerHTML = '<div class="empty-state">No models matching filter.</div>';
+    return;
+  }
+
+  for (const m of filtered) {
+    const card = document.createElement('div');
+    card.className = 'model-card';
+    card.innerHTML = `
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+          <span class="model-id">${esc(m.id)}</span>
+          <span class="badge ${m.provider}">${m.provider}</span>
+        </div>
+        <div class="model-desc">${esc(m.description || m.id)}</div>
+      </div>
+      <div class="model-meta">
+        <span>Upstream: <code>${esc(m.upstream)}</code></span>
+        <button class="ghost" style="padding:2px 8px; font-size:11px;" onclick="event.stopPropagation(); copyText('${esc(m.id)}')">Copy ID</button>
+      </div>
+    `;
+    card.onclick = () => {
+      $('#pg-model-select').value = m.id;
+      switchTab('playground');
+    };
+    box.appendChild(card);
+  }
 }
 
-// ---------- add Kiro (device login) ----------
-let kiroPollTimer = null;
+$('#model-search').oninput = renderCatalog;
+$('#model-provider-filter').onchange = renderCatalog;
+
+// Playground Setup
+function renderPlaygroundModels() {
+  const sel = $('#pg-model-select');
+  if (!state.models || sel.children.length > 0) return;
+  sel.innerHTML = '';
+  for (const m of state.models) {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = `${m.id} (${m.provider})`;
+    sel.appendChild(opt);
+  }
+}
+
+$('#btn-pg-send').onclick = async () => {
+  const model = $('#pg-model-select').value;
+  const prompt = $('#pg-input').value.trim();
+  const stream = $('#pg-stream').checked;
+  const out = $('#pg-output');
+  const metrics = $('#pg-metrics');
+
+  if (!prompt) {
+    notice('Please enter a prompt in the playground.', 'error');
+    return;
+  }
+
+  out.textContent = 'Connecting…\n';
+  metrics.textContent = '';
+  const startTime = Date.now();
+
+  try {
+    const res = await fetch('/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${adminKey() || 'sk-gw-playground'}`,
+        'X-Admin-Key': adminKey(),
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        stream,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      out.textContent = `Error (${res.status}): ${JSON.stringify(err, null, 2)}`;
+      return;
+    }
+
+    if (!stream) {
+      const json = await res.json();
+      const latency = Date.now() - startTime;
+      out.textContent = json.choices?.[0]?.message?.content || JSON.stringify(json, null, 2);
+      metrics.textContent = `Latency: ${latency}ms | Usage: ${json.usage?.total_tokens || 0} tokens`;
+    } else {
+      out.textContent = '';
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let totalChars = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const dataStr = line.slice(6).trim();
+            if (dataStr === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(dataStr);
+              const delta = parsed.choices?.[0]?.delta?.content || '';
+              out.textContent += delta;
+              totalChars += delta.length;
+              out.scrollTop = out.scrollHeight;
+            } catch {}
+          }
+        }
+      }
+      const latency = Date.now() - startTime;
+      metrics.textContent = `Streaming complete in ${latency}ms (${totalChars} chars)`;
+    }
+  } catch (err) {
+    out.textContent = `Connection error: ${err.message}`;
+  }
+};
+
+// Kiro Login Handler
 $('#btn-add-kiro').onclick = async () => {
   try {
     const s = await api('POST', '/admin/api/kiro/login');
-    const box = $('#kiro-login');
-    box.style.display = 'block';
-    box.innerHTML = `<div class="devicebox">
-      <div class="muted">Open the link below and sign in with AWS Builder ID:</div>
-      <div class="code">${esc(s.userCode)}</div>
-      <a href="${esc(s.verificationUriComplete)}" target="_blank" rel="noopener">${esc(s.verificationUriComplete)}</a>
-      <div class="muted" style="margin-top:10px" id="kiro-status">Waiting for approval…</div></div>`;
+    const prompt = $('#kiro-login-prompt');
+    prompt.style.display = 'block';
+    $('#kiro-user-code').textContent = s.userCode;
+    $('#kiro-auth-url').href = s.verificationUriComplete;
+
     clearInterval(kiroPollTimer);
     kiroPollTimer = setInterval(async () => {
       try {
         const st = await api('GET', '/admin/api/kiro/login/' + s.loginId);
         if (st.state === 'done') {
           clearInterval(kiroPollTimer);
-          box.style.display = 'none';
-          notice('Kiro account added: ' + (st.account?.email || 'ok'));
+          prompt.style.display = 'none';
+          notice('Kiro account added successfully: ' + (st.account?.email || 'authenticated'), 'success');
           refreshState();
+          switchTab('accounts');
         } else if (st.state === 'error' || st.state === 'expired') {
           clearInterval(kiroPollTimer);
-          $('#kiro-status').textContent = st.error || 'Login expired — try again.';
+          $('#kiro-status-text').textContent = st.error || 'Session expired — please try again.';
         }
       } catch (err) {
         if (err.message && err.message.includes('404')) {
           clearInterval(kiroPollTimer);
-          $('#kiro-status').textContent = 'Session expired — try starting the login again.';
+          $('#kiro-status-text').textContent = 'Session expired.';
         }
       }
     }, 2000);
@@ -340,66 +1249,71 @@ $('#btn-add-kiro').onclick = async () => {
 };
 
 $('#btn-import-kiro').onclick = async () => {
-  const raw = $('#kiro-token').value.trim();
+  const raw = $('#kiro-token-input').value.trim();
   if (!raw) return;
   try {
     const acc = await api('POST', '/admin/api/kiro/import', { token: raw });
-    $('#kiro-token').value = '';
-    notice('Kiro token imported: ' + (acc.email || 'ok'));
+    $('#kiro-token-input').value = '';
+    notice('Kiro token imported successfully: ' + (acc.email || 'ok'), 'success');
     refreshState();
+    switchTab('accounts');
   } catch (err) {
-    notice('Import failed: ' + err.message, 'error');
+    notice('Token import failed: ' + err.message, 'error');
   }
 };
 
-// ---------- add Antigravity ----------
+// Google Antigravity Login
 $('#btn-add-agy').onclick = async () => {
   try {
     const { url } = await api('GET', '/admin/api/antigravity/login');
     window.open(url, '_blank', 'noopener');
-    notice('Complete the Google sign-in in the new tab. This page will refresh when done.');
+    notice('Sign-in opened in a new tab. This dashboard will refresh once complete.', 'info');
     const watch = setInterval(() => {
       if (!state) return;
       refreshState();
-    }, 4000);
+    }, 3000);
     setTimeout(() => clearInterval(watch), 5 * 60_000);
   } catch (err) {
     notice('Could not start Google login: ' + err.message, 'error');
   }
 };
 
-// ---------- API keys ----------
-async function renderKeys() {
+// API Keys
+function renderKeys() {
   if (!state) return;
-  const box = $('#keys');
-  const shown = (await api('GET', '/admin/api/state')).config.keyCount;
-  box.innerHTML = '';
-  if (!shown) {
-    box.innerHTML = '<div class="empty">No keys yet — generate one above.</div>';
+  const box = $('#keys-list');
+  const count = state.config?.keyCount || 0;
+  if (!count) {
+    box.innerHTML = '<div class="empty-state">No API keys created yet. Create one above to authenticate your agents.</div>';
     return;
   }
-  box.innerHTML = `<div class="empty">${shown} key(s) configured. Full key values are only shown when created.</div>`;
+  box.innerHTML = `<div class="empty-state">${count} API key(s) active on this gateway. Full secret values are shown once upon creation.</div>`;
 }
 
-$('#btn-make-key').onclick = async () => {
+$('#btn-create-key').onclick = async () => {
   try {
-    const { key, name } = await api('POST', '/admin/api/keys', { name: $('#keyname').value });
-    $('#keyname').value = '';
-    $('#newkey').innerHTML = `<div class="keyrow"><span class="name">${esc(name)}</span><code>${esc(key)}</code>
-      <button class="ghost" onclick="navigator.clipboard.writeText('${esc(key)}')">copy</button></div>`;
-    notice('Key created — copy it now.');
-    state = await api('GET', '/admin/api/state');
-    renderKeys();
+    const name = $('#key-name-input').value.trim() || 'agent-key';
+    const { key } = await api('POST', '/admin/api/keys', { name });
+    $('#key-name-input').value = '';
+    $('#new-key-banner').innerHTML = `
+      <div class="code-snippet" style="border-color:var(--green);">
+        <div style="font-size:12px; color:var(--green); font-weight:600; margin-bottom:4px;">Key Created — Copy it now:</div>
+        <pre>${esc(key)}</pre>
+        <button class="ghost copy-btn" onclick="copyText('${esc(key)}')">Copy</button>
+      </div>
+    `;
+    notice('API key created successfully.', 'success');
+    refreshState();
   } catch (err) {
     notice('Key creation failed: ' + err.message, 'error');
   }
 };
 
-// ---------- settings ----------
-let settingsLoadedFor = '';
+// Settings
+let settingsLoaded = false;
 function renderSettings() {
-  if (!state || settingsLoadedFor === 'ok') return;
-  settingsLoadedFor = 'ok';
+  if (!state || settingsLoaded) return;
+  settingsLoaded = true;
   $('#set-baseurl').value = state.config.publicBaseUrl || '';
   $('#set-port').value = state.config.port;
   $('#set-host').value = state.config.host;
@@ -414,9 +1328,9 @@ $('#btn-save-settings').onclick = async () => {
       host: $('#set-host').value.trim(),
     };
     const res = await api('POST', '/admin/api/settings', body);
-    $('#settings-note').textContent = res.restartNeeded ? 'Saved — restart the gateway for port/host changes.' : 'Saved.';
+    $('#settings-status').textContent = res.restartNeeded ? 'Settings saved. Restart gateway to apply host/port changes.' : 'Settings saved.';
     $('#set-adminpass').value = '';
-    notice('Settings saved.');
+    notice('Settings saved successfully.', 'success');
     refreshState();
   } catch (err) {
     notice('Save failed: ' + err.message, 'error');
@@ -426,15 +1340,15 @@ $('#btn-save-settings').onclick = async () => {
 $('#btn-refresh-quota').onclick = async () => {
   try {
     await api('POST', '/admin/api/quota/refresh');
-    notice('Refreshing quotas…');
-    setTimeout(refreshState, 3000);
+    notice('Refreshing all quotas in background…', 'info');
+    setTimeout(refreshState, 2500);
   } catch (err) {
-    notice('Failed: ' + err.message, 'error');
+    notice('Failed to refresh quotas: ' + err.message, 'error');
   }
 };
 
-// ---------- backup & restore ----------
-$('#btn-backup').onclick = async () => {
+// Backup & Restore
+$('#btn-backup-download').onclick = async () => {
   try {
     const passphrase = $('#backup-pass').value || undefined;
     const res = await api('POST', '/admin/api/backup', { passphrase });
@@ -445,44 +1359,50 @@ $('#btn-backup').onclick = async () => {
     a.click();
     URL.revokeObjectURL(a.href);
     $('#backup-pass').value = '';
-    notice(`Backup downloaded (${res.accountCount} account${res.accountCount === 1 ? '' : 's'}).`);
+    notice(`Backup downloaded with ${res.accountCount} account(s).`, 'success');
   } catch (err) {
     notice('Backup failed: ' + err.message, 'error');
   }
 };
 
-$('#btn-restore').onclick = () => $('#restore-file').click();
+$('#btn-restore-browse').onclick = () => $('#restore-file-input').click();
 
-$('#restore-file').onchange = async () => {
-  const file = $('#restore-file').files?.[0];
-  $('#restore-file').value = '';
+$('#restore-file-input').onchange = async () => {
+  const file = $('#restore-file-input').files?.[0];
+  $('#restore-file-input').value = '';
   if (!file) return;
   try {
     const content = await file.text();
-    const passphrase = $('#restore-pass').value || undefined;
+    const passphrase = $('#restore-pass-input').value || undefined;
     const res = await api('POST', '/admin/api/restore', { content, passphrase });
-    $('#restore-pass').value = '';
-    const box = $('#restore-result');
+    $('#restore-pass-input').value = '';
+    const box = $('#restore-result-box');
     const lines = [];
-    if (res.added.length) lines.push(`<div>✅ Added ${res.added.length}: ${res.added.map((a) => esc(a.email || a.provider)).join(', ')}</div>`);
-    if (res.skipped.length) lines.push(`<div class="muted">⏭ Skipped ${res.skipped.length}: ${res.skipped.map((a) => esc(a.email || a.provider)).join(', ')}</div>`);
-    if (res.errors.length) lines.push(`<div style="color:var(--red)">⚠ ${res.errors.map(esc).join('<br>')}</div>`);
-    box.innerHTML = lines.join('') || '<div class="muted">Nothing to restore.</div>';
-    notice(`Restored ${res.added.length} account(s).`);
+    if (res.added?.length) lines.push(`<div style="color:var(--green);">✅ Added ${res.added.length} account(s): ${res.added.map((a) => esc(a.email || a.provider)).join(', ')}</div>`);
+    if (res.skipped?.length) lines.push(`<div class="metric-sub">⏭ Skipped ${res.skipped.length} existing duplicate(s)</div>`);
+    if (res.errors?.length) lines.push(`<div style="color:var(--red);">⚠ ${res.errors.map(esc).join('<br>')}</div>`);
+    box.innerHTML = lines.join('') || '<div class="metric-sub">Nothing to restore.</div>';
+    notice(`Restore complete: ${res.added?.length || 0} account(s) added.`, 'success');
     refreshState();
   } catch (err) {
-    $('#restore-pass').value = '';
+    $('#restore-pass-input').value = '';
     notice('Restore failed: ' + err.message, 'error');
   }
 };
 
-// ---------- boot ----------
+function copyText(text) {
+  navigator.clipboard.writeText(text);
+  notice(`Copied "${text}" to clipboard.`, 'info');
+}
+
+// URL Callback Params
 const params = new URLSearchParams(location.search);
-if (params.get('added')) notice('Account added successfully.');
+if (params.get('added')) notice('Account added successfully!', 'success');
 if (params.get('login_error')) notice('Login failed: ' + params.get('login_error'), 'error');
 if (params.get('added') || params.get('login_error')) history.replaceState(null, '', '/');
+
 refreshState();
-setInterval(refreshState, 12000);
+setInterval(refreshState, 15000);
 </script>
 </body>
 </html>
