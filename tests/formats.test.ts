@@ -210,8 +210,14 @@ describe('resolveModel', () => {
     const m2 = resolveModel('kiro/claude-sonnet-4-5');
     expect(m2).toMatchObject({ provider: 'kiro', upstream: 'claude-sonnet-4.5' });
 
-    const m3 = resolveModel('agy/gemini-3.7-flash');
-    expect(m3).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.6-flash-high' });
+    const m3High = resolveModel('agy/gemini-3.7-flash-high');
+    expect(m3High).toMatchObject({ id: 'agy/gemini-3.7-flash-high', provider: 'antigravity', upstream: 'gemini-3.6-flash-high' });
+
+    const m3Med = resolveModel('agy/gemini-3.7-flash-medium');
+    expect(m3Med).toMatchObject({ id: 'agy/gemini-3.7-flash-medium', provider: 'antigravity', upstream: 'gemini-3.6-flash-medium' });
+
+    const m3Low = resolveModel('agy/gemini-3.7-flash-low');
+    expect(m3Low).toMatchObject({ id: 'agy/gemini-3.7-flash-low', provider: 'antigravity', upstream: 'gemini-3.6-flash-low' });
 
     const m4 = resolveModel('gemini-3.7-flash');
     expect(m4).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.6-flash-high' });
