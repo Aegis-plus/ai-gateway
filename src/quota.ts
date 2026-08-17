@@ -39,15 +39,17 @@ async function doRefresh(account: Account, store: Store): Promise<void> {
           account.email = limits.userInfo.email;
           account.label = account.email;
         }
+        account.status.lastError = undefined;
       } catch (err) {
         account.quota = {
           checkedAt: new Date().toISOString(),
           kiro: account.quota?.kiro || { usage: [] },
         };
-        const msg = err instanceof Error ? err.message : String(err);
-        // Only set lastError if not already working
-        if (account.status.state !== 'ok') {
-          account.status.lastError = msg;
+        // Quota check is best-effort telemetry; only set lastError if account state is not ok
+        if (account.status.state === 'ok') {
+          account.status.lastError = undefined;
+        } else {
+          account.status.lastError = err instanceof Error ? err.message : String(err);
         }
       }
     } else {

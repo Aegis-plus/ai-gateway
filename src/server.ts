@@ -13,8 +13,8 @@ import { refreshAccountQuota, refreshAllQuotas } from './quota.ts';
 import { parseOpenAIRequest, RequestFormatError, buildOpenAICompletion, streamOpenAI, openaiCompletionId } from './openai.ts';
 import { parseAnthropicRequest, buildAnthropicMessage, streamAnthropic } from './anthropic.ts';
 import { EventAggregator } from './aggregate.ts';
-import { startDeviceLogin, getLoginSession, importIdeToken, getValidAccessToken as kiroValidToken } from './auth/kiro.ts';
-import { startLogin, handleCallback, getValidAccessToken as agyValidToken } from './auth/antigravity.ts';
+import { startDeviceLogin, getLoginSession, importIdeToken, forceRefreshToken as kiroForceRefreshToken } from './auth/kiro.ts';
+import { startLogin, handleCallback, forceRefreshToken as agyForceRefreshToken } from './auth/antigravity.ts';
 import { createBackup, restoreBackup } from './backup.ts';
 
 const MAX_BODY = 64 * 1024 * 1024;
@@ -408,8 +408,8 @@ export function createGatewayServer(store: Store): ReturnType<typeof createServe
   }
 
   function forceTokenRefresh(account: Account): Promise<void> {
-    if (account.provider === 'kiro') return kiroValidToken(account.credentials as never).then(() => undefined);
-    return agyValidToken(account.credentials as never).then(() => undefined);
+    if (account.provider === 'kiro') return kiroForceRefreshToken(account.credentials as never).then(() => undefined);
+    return agyForceRefreshToken(account.credentials as never).then(() => undefined);
   }
 
   function logRequest(path: string, entry: { provider: string; upstream: string }, account: Account) {
