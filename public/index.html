@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Gateway</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --border: #2a2f3a;
+    --text: #e6e9ef; --muted: #8b93a3; --accent: #5b9dff; --green: #4ade80;
+    --red: #f87171; --amber: #fbbf24; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, sans-serif; }
+  header { display: flex; align-items: center; gap: 14px; padding: 14px 22px; border-bottom: 1px solid var(--border); background: var(--panel); }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  header .sub { color: var(--muted); font-size: 12px; }
+  nav { display: flex; gap: 4px; margin-left: auto; }
+  nav button { background: none; border: 1px solid transparent; color: var(--muted); padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+  nav button.active { background: var(--panel2); color: var(--text); border-color: var(--border); }
+  main { max-width: 960px; margin: 0 auto; padding: 24px 22px 80px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+  .card h2 { font-size: 14px; margin: 0 0 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  button.primary { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 8px 16px; cursor: pointer; font-size: 13px; font-weight: 500; }
+  button.primary:hover { filter: brightness(1.1); }
+  button.ghost { background: none; border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 12px; }
+  button.ghost:hover { border-color: var(--accent); }
+  button.danger { color: var(--red); }
+  .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--border); color: var(--muted); }
+  .badge.kiro { color: #f59e0b; border-color: #7c5a1255; }
+  .badge.antigravity { color: #8ab4f8; border-color: #8ab4f855; }
+  .badge.ok { color: var(--green); border-color: #4ade8055; }
+  .badge.cooldown { color: var(--amber); border-color: #fbbf2455; }
+  .badge.expired { color: var(--red); border-color: #f8717155; }
+  .account { border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 12px; background: var(--panel2); }
+  .account .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .account .email { font-weight: 600; }
+  .account .meta { color: var(--muted); font-size: 12px; }
+  .account .actions { margin-left: auto; display: flex; gap: 6px; }
+  .quota { margin-top: 10px; display: grid; gap: 6px; }
+  .qrow { display: grid; grid-template-columns: 200px 1fr 130px; gap: 10px; align-items: center; font-size: 12px; }
+  .qrow .label { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar { height: 8px; background: #0b0d11; border-radius: 99px; overflow: hidden; border: 1px solid var(--border); }
+  .bar > div { height: 100%; border-radius: 99px; background: var(--green); transition: width .3s; }
+  .bar > div.warn { background: var(--amber); }
+  .bar > div.crit { background: var(--red); }
+  .qrow .val { text-align: right; color: var(--muted); font-family: var(--mono); font-size: 11px; }
+  input[type=text], input[type=password], input[type=number], textarea {
+    background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 8px 10px; font-size: 13px; font-family: inherit;
+  }
+  textarea { width: 100%; min-height: 90px; font-family: var(--mono); font-size: 11px; }
+  .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+  .field label { font-size: 12px; color: var(--muted); }
+  .field .hint { font-size: 11px; color: var(--muted); }
+  code { font-family: var(--mono); font-size: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px; word-break: break-all; }
+  .keyrow { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .keyrow:last-child { border-bottom: none; }
+  .keyrow .name { font-weight: 600; min-width: 120px; }
+  .notice { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; display: none; }
+  .notice.error { display: block; background: #3d1517; color: #fca5a5; border: 1px solid #7f1d1d55; }
+  .notice.info { display: block; background: #12233d; color: #93c5fd; border: 1px solid #1e3a8a55; }
+  .devicebox { text-align: center; padding: 20px; }
+  .devicebox .code { font-size: 28px; letter-spacing: .2em; font-family: var(--mono); margin: 12px 0; color: var(--accent); }
+  .muted { color: var(--muted); }
+  .empty { color: var(--muted); text-align: center; padding: 24px 0; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>⚡ AI Gateway</h1>
+  <span class="sub">Kiro + Antigravity · <span id="accountCount">0 accounts</span></span>
+  <nav>
+    <button data-tab="accounts" class="active">Accounts</button>
+    <button data-tab="keys">API Keys</button>
+    <button data-tab="settings">Settings</button>
+  </nav>
+</header>
+<main>
+  <div id="notice" class="notice"></div>
+
+  <!-- Accounts -->
+  <section id="tab-accounts">
+    <div class="card">
+      <h2>Add account</h2>
+      <div class="row">
+        <button class="primary" id="btn-add-kiro">+ Kiro account</button>
+        <button class="primary" id="btn-add-agy">+ Antigravity account (Google)</button>
+        <span class="muted" style="font-size:12px">Kiro uses a device code you approve at view.awsapps.com; Antigravity opens Google sign-in.</span>
+      </div>
+      <div id="kiro-login" style="display:none; margin-top:14px"></div>
+      <details style="margin-top:14px">
+        <summary class="muted" style="cursor:pointer; font-size:12px">Import existing Kiro IDE token instead</summary>
+        <div style="margin-top:10px">
+          <textarea id="kiro-token" placeholder='Paste ~/.aws/sso/cache/kiro-auth-token.json contents here'></textarea>
+          <div class="row" style="margin-top:8px"><button class="ghost" id="btn-import-kiro">Import token</button></div>
+        </div>
+      </details>
+    </div>
+    <div class="card">
+      <h2>Accounts &amp; quota</h2>
+      <div id="accounts"><div class="empty">Loading…</div></div>
+      <div class="row"><button class="ghost" id="btn-refresh-quota">↻ Refresh all quotas</button></div>
+    </div>
+    <div class="card">
+      <h2>Backup &amp; restore</h2>
+      <p class="muted" style="font-size:12px; margin-top:0">Backups contain refresh tokens — store them like passwords. Restoring merges accounts and skips duplicates.</p>
+      <div class="row" style="margin-bottom:10px">
+        <input type="password" id="backup-pass" placeholder="Optional passphrase (encrypts the backup)" style="width:280px">
+        <button class="primary" id="btn-backup">⭳ Download backup</button>
+      </div>
+      <div class="row">
+        <input type="file" id="restore-file" accept=".json,application/json" style="display:none">
+        <button class="ghost" id="btn-restore">⭱ Restore backup…</button>
+        <input type="password" id="restore-pass" placeholder="Passphrase (if encrypted)" style="width:220px">
+      </div>
+      <div id="restore-result" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- API keys -->
+  <section id="tab-keys" style="display:none">
+    <div class="card">
+      <h2>Create API key</h2>
+      <div class="row">
+        <input type="text" id="keyname" placeholder="e.g. cline-laptop" style="width:240px">
+        <button class="primary" id="btn-make-key">Generate key</button>
+      </div>
+      <div id="newkey" style="margin-top:12px"></div>
+    </div>
+    <div class="card">
+      <h2>Keys</h2>
+      <div id="keys"><div class="empty">Loading…</div></div>
+      <p class="muted" style="font-size:12px">Use with OpenAI-compatible tools: base URL <code>/v1</code>; with Claude Code: <code>ANTHROPIC_BASE_URL=/</code> pointing here and <code>/v1/messages</code>.</p>
+    </div>
+  </section>
+
+  <!-- Settings -->
+  <section id="tab-settings" style="display:none">
+    <div class="card">
+      <h2>Settings</h2>
+      <div class="field"><label>Public base URL (for Antigravity OAuth redirect; leave empty for localhost)</label>
+        <input type="text" id="set-baseurl" placeholder="https://gateway.example.com"></div>
+      <div class="field"><label>Dashboard password (optional)</label>
+        <input type="password" id="set-adminpass" placeholder="empty = no password (local use)">
+        <span class="hint">Protects /admin/api. After setting it, enter the same password when prompted.</span></div>
+      <div class="row">
+        <div class="field" style="flex:1"><label>Port</label><input type="number" id="set-port"></div>
+        <div class="field" style="flex:1"><label>Bind host</label><input type="text" id="set-host" placeholder="127.0.0.1"></div>
+      </div>
+      <div class="row"><button class="primary" id="btn-save-settings">Save settings</button><span class="muted" id="settings-note" style="font-size:12px"></span></div>
+    </div>
+  </section>
+</main>
+
+<script>
+'use strict';
+const $ = (sel) => document.querySelector(sel);
+const adminKey = () => localStorage.getItem('gw_admin_key') || '';
+const headers = () => ({ 'Content-Type': 'application/json', 'X-Admin-Key': adminKey() });
+
+function notice(msg, kind = 'info') {
+  const el = $('#notice');
+  el.textContent = msg;
+  el.className = 'notice ' + kind;
+  if (kind === 'info') setTimeout(() => (el.className = 'notice'), 5000);
+}
+
+async function api(method, path, body) {
+  const res = await fetch(path, {
+    method,
+    headers: headers(),
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (res.status === 401) {
+    const pass = prompt('Dashboard password:');
+    if (pass !== null) {
+      localStorage.setItem('gw_admin_key', pass);
+      return api(method, path, body);
+    }
+    throw new Error('unauthorized');
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+// ---------- tabs ----------
+document.querySelectorAll('nav button').forEach((btn) => {
+  btn.onclick = () => {
+    document.querySelectorAll('nav button').forEach((b) => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('main section').forEach((s) => (s.style.display = 'none'));
+    $('#tab-' + btn.dataset.tab).style.display = 'block';
+  };
+});
+
+// ---------- state ----------
+let state = null;
+
+async function refreshState() {
+  try {
+    state = await api('GET', '/admin/api/state');
+    renderAccounts();
+    renderKeys();
+    renderSettings();
+    $('#accountCount').textContent =
+      `${state.accounts.length} accounts · ${state.accounts.filter((a) => a.provider === 'kiro').length} kiro · ${state.accounts.filter((a) => a.provider === 'antigravity').length} antigravity`;
+  } catch (err) {
+    if (err.message !== 'unauthorized') notice('Failed to load state: ' + err.message, 'error');
+  }
+}
+
+function fmtWhen(ts) {
+  if (!ts) return '';
+  const ms = ts - Date.now();
+  if (ms <= 0) return 'now';
+  const mins = Math.ceil(ms / 60000);
+  if (mins < 60) return `in ${mins}m`;
+  const hours = Math.ceil(mins / 60);
+  if (hours < 48) return `in ${hours}h`;
+  return `in ${Math.ceil(hours / 24)}d`;
+}
+
+function renderAccounts() {
+  const box = $('#accounts');
+  if (!state.accounts.length) {
+    box.innerHTML = '<div class="empty">No accounts yet — add a Kiro or Antigravity account above.</div>';
+    return;
+  }
+  box.innerHTML = '';
+  for (const a of state.accounts) {
+    const el = document.createElement('div');
+    el.className = 'account';
+    const statusBadge =
+      a.status.state === 'ok'
+        ? '<span class="badge ok">active</span>'
+        : a.status.state === 'expired'
+          ? '<span class="badge expired">expired</span>'
+          : `<span class="badge cooldown">cooldown ${fmtWhen(a.status.cooldownUntil)}</span>`;
+    let quotaHtml = '';
+    if (a.quota?.kiro) {
+      const k = a.quota.kiro;
+      for (const u of k.usage || []) {
+        const pct = u.usageLimit > 0 ? Math.max(0, 100 - (u.currentUsage / u.usageLimit) * 100) : 100;
+        const cls = pct < 10 ? 'crit' : pct < 35 ? 'warn' : '';
+        quotaHtml += `<div class="qrow"><span class="label">${esc(u.resourceType)} · ${esc(k.subscriptionType || '')}</span>
+          <div class="bar"><div class="${cls}" style="width:${pct}%"></div></div>
+          <span class="val">${(+u.currentUsage).toFixed(1)} / ${+u.usageLimit} left ${k.nextDateReset ? '· resets ' + new Date(k.nextDateReset * 1000).toLocaleDateString() : ''}</span></div>`;
+      }
+    }
+    if (a.quota?.antigravity) {
+      const g = a.quota.antigravity;
+      if (g.credits !== undefined && g.credits !== null) {
+        quotaHtml += `<div class="qrow"><span class="label">Google One AI credits</span><div class="bar"><div style="width:100%"></div></div><span class="val">${g.credits}</span></div>`;
+      }
+      for (const b of g.buckets || []) {
+        const pct = Math.max(0, Math.min(100, (b.remainingFraction ?? 1) * 100));
+        const cls = pct < 10 ? 'crit' : pct < 35 ? 'warn' : '';
+        quotaHtml += `<div class="qrow"><span class="label">${esc(b.displayName || b.bucketId)}</span>
+          <div class="bar"><div class="${cls}" style="width:${pct}%"></div></div>
+          <span class="val">${pct.toFixed(0)}% left${b.resetTime ? ' · ' + new Date(b.resetTime).toLocaleString() : ''}</span></div>`;
+      }
+    }
+    if (!quotaHtml && a.quota?.checkedAt) quotaHtml = `<div class="muted" style="font-size:12px">No quota details returned.</div>`;
+    el.innerHTML = `
+      <div class="top">
+        <span class="badge ${a.provider}">${a.provider}</span>
+        <span class="email">${esc(a.email || a.label || a.id.slice(0, 8))}</span>
+        ${statusBadge}
+        <span class="meta">${a.stats.requests} req · ${a.stats.errors} err${a.status.lastError ? ' · ' + esc(a.status.lastError.slice(0, 80)) : ''}</span>
+        <span class="actions">
+          <button class="ghost" data-act="quota" data-id="${a.id}">↻ quota</button>
+          <button class="ghost" data-act="token" data-id="${a.id}">↻ token</button>
+          <button class="ghost danger" data-act="del" data-id="${a.id}">remove</button>
+        </span>
+      </div>
+      ${quotaHtml ? `<div class="quota">${quotaHtml}</div>` : ''}`;
+    box.appendChild(el);
+  }
+  box.querySelectorAll('button[data-act]').forEach((btn) => {
+    btn.onclick = async () => {
+      const id = btn.dataset.id;
+      try {
+        if (btn.dataset.act === 'del') {
+          if (!confirm('Remove this account from the gateway?')) return;
+          await api('DELETE', '/admin/api/accounts/' + id);
+        } else if (btn.dataset.act === 'quota') {
+          await api('POST', `/admin/api/accounts/${id}/quota`);
+        } else if (btn.dataset.act === 'token') {
+          await api('POST', `/admin/api/accounts/${id}/refresh-token`);
+        }
+        refreshState();
+      } catch (err) {
+        notice('Action failed: ' + err.message, 'error');
+      }
+    };
+  });
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ---------- add Kiro (device login) ----------
+let kiroPollTimer = null;
+$('#btn-add-kiro').onclick = async () => {
+  try {
+    const s = await api('POST', '/admin/api/kiro/login');
+    const box = $('#kiro-login');
+    box.style.display = 'block';
+    box.innerHTML = `<div class="devicebox">
+      <div class="muted">Open the link below and sign in with AWS Builder ID:</div>
+      <div class="code">${esc(s.userCode)}</div>
+      <a href="${esc(s.verificationUriComplete)}" target="_blank" rel="noopener">${esc(s.verificationUriComplete)}</a>
+      <div class="muted" style="margin-top:10px" id="kiro-status">Waiting for approval…</div></div>`;
+    clearInterval(kiroPollTimer);
+    kiroPollTimer = setInterval(async () => {
+      try {
+        const st = await api('GET', '/admin/api/kiro/login/' + s.loginId);
+        if (st.state === 'done') {
+          clearInterval(kiroPollTimer);
+          box.style.display = 'none';
+          notice('Kiro account added: ' + (st.account?.email || 'ok'));
+          refreshState();
+        } else if (st.state === 'error' || st.state === 'expired') {
+          clearInterval(kiroPollTimer);
+          $('#kiro-status').textContent = st.error || 'Login expired — try again.';
+        }
+      } catch (err) {
+        if (err.message && err.message.includes('404')) {
+          clearInterval(kiroPollTimer);
+          $('#kiro-status').textContent = 'Session expired — try starting the login again.';
+        }
+      }
+    }, 2000);
+  } catch (err) {
+    notice('Could not start Kiro login: ' + err.message, 'error');
+  }
+};
+
+$('#btn-import-kiro').onclick = async () => {
+  const raw = $('#kiro-token').value.trim();
+  if (!raw) return;
+  try {
+    const acc = await api('POST', '/admin/api/kiro/import', { token: raw });
+    $('#kiro-token').value = '';
+    notice('Kiro token imported: ' + (acc.email || 'ok'));
+    refreshState();
+  } catch (err) {
+    notice('Import failed: ' + err.message, 'error');
+  }
+};
+
+// ---------- add Antigravity ----------
+$('#btn-add-agy').onclick = async () => {
+  try {
+    const { url } = await api('GET', '/admin/api/antigravity/login');
+    window.open(url, '_blank', 'noopener');
+    notice('Complete the Google sign-in in the new tab. This page will refresh when done.');
+    const watch = setInterval(() => {
+      if (!state) return;
+      refreshState();
+    }, 4000);
+    setTimeout(() => clearInterval(watch), 5 * 60_000);
+  } catch (err) {
+    notice('Could not start Google login: ' + err.message, 'error');
+  }
+};
+
+// ---------- API keys ----------
+async function renderKeys() {
+  if (!state) return;
+  const box = $('#keys');
+  const shown = (await api('GET', '/admin/api/state')).config.keyCount;
+  box.innerHTML = '';
+  if (!shown) {
+    box.innerHTML = '<div class="empty">No keys yet — generate one above.</div>';
+    return;
+  }
+  box.innerHTML = `<div class="empty">${shown} key(s) configured. Full key values are only shown when created.</div>`;
+}
+
+$('#btn-make-key').onclick = async () => {
+  try {
+    const { key, name } = await api('POST', '/admin/api/keys', { name: $('#keyname').value });
+    $('#keyname').value = '';
+    $('#newkey').innerHTML = `<div class="keyrow"><span class="name">${esc(name)}</span><code>${esc(key)}</code>
+      <button class="ghost" onclick="navigator.clipboard.writeText('${esc(key)}')">copy</button></div>`;
+    notice('Key created — copy it now.');
+    state = await api('GET', '/admin/api/state');
+    renderKeys();
+  } catch (err) {
+    notice('Key creation failed: ' + err.message, 'error');
+  }
+};
+
+// ---------- settings ----------
+let settingsLoadedFor = '';
+function renderSettings() {
+  if (!state || settingsLoadedFor === 'ok') return;
+  settingsLoadedFor = 'ok';
+  $('#set-baseurl').value = state.config.publicBaseUrl || '';
+  $('#set-port').value = state.config.port;
+  $('#set-host').value = state.config.host;
+}
+
+$('#btn-save-settings').onclick = async () => {
+  try {
+    const body = {
+      publicBaseUrl: $('#set-baseurl').value.trim() || '',
+      adminPassword: $('#set-adminpass').value,
+      port: parseInt($('#set-port').value, 10),
+      host: $('#set-host').value.trim(),
+    };
+    const res = await api('POST', '/admin/api/settings', body);
+    $('#settings-note').textContent = res.restartNeeded ? 'Saved — restart the gateway for port/host changes.' : 'Saved.';
+    $('#set-adminpass').value = '';
+    notice('Settings saved.');
+    refreshState();
+  } catch (err) {
+    notice('Save failed: ' + err.message, 'error');
+  }
+};
+
+$('#btn-refresh-quota').onclick = async () => {
+  try {
+    await api('POST', '/admin/api/quota/refresh');
+    notice('Refreshing quotas…');
+    setTimeout(refreshState, 3000);
+  } catch (err) {
+    notice('Failed: ' + err.message, 'error');
+  }
+};
+
+// ---------- backup & restore ----------
+$('#btn-backup').onclick = async () => {
+  try {
+    const passphrase = $('#backup-pass').value || undefined;
+    const res = await api('POST', '/admin/api/backup', { passphrase });
+    const blob = new Blob([res.content], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = res.filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    $('#backup-pass').value = '';
+    notice(`Backup downloaded (${res.accountCount} account${res.accountCount === 1 ? '' : 's'}).`);
+  } catch (err) {
+    notice('Backup failed: ' + err.message, 'error');
+  }
+};
+
+$('#btn-restore').onclick = () => $('#restore-file').click();
+
+$('#restore-file').onchange = async () => {
+  const file = $('#restore-file').files?.[0];
+  $('#restore-file').value = '';
+  if (!file) return;
+  try {
+    const content = await file.text();
+    const passphrase = $('#restore-pass').value || undefined;
+    const res = await api('POST', '/admin/api/restore', { content, passphrase });
+    $('#restore-pass').value = '';
+    const box = $('#restore-result');
+    const lines = [];
+    if (res.added.length) lines.push(`<div>✅ Added ${res.added.length}: ${res.added.map((a) => esc(a.email || a.provider)).join(', ')}</div>`);
+    if (res.skipped.length) lines.push(`<div class="muted">⏭ Skipped ${res.skipped.length}: ${res.skipped.map((a) => esc(a.email || a.provider)).join(', ')}</div>`);
+    if (res.errors.length) lines.push(`<div style="color:var(--red)">⚠ ${res.errors.map(esc).join('<br>')}</div>`);
+    box.innerHTML = lines.join('') || '<div class="muted">Nothing to restore.</div>';
+    notice(`Restored ${res.added.length} account(s).`);
+    refreshState();
+  } catch (err) {
+    $('#restore-pass').value = '';
+    notice('Restore failed: ' + err.message, 'error');
+  }
+};
+
+// ---------- boot ----------
+const params = new URLSearchParams(location.search);
+if (params.get('added')) notice('Account added successfully.');
+if (params.get('login_error')) notice('Login failed: ' + params.get('login_error'), 'error');
+if (params.get('added') || params.get('login_error')) history.replaceState(null, '', '/');
+refreshState();
+setInterval(refreshState, 12000);
+</script>
+</body>
+</html>
