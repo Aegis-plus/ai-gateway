@@ -47,7 +47,9 @@ async function doRefresh(account: Account, store: Store): Promise<void> {
 
       groups.forEach((group, groupIdx) => {
         const groupLabel = group.displayName ?? group.groupName ?? '';
-        for (const bucket of group.buckets ?? []) {
+        const groupBuckets = group.buckets ?? [];
+
+        groupBuckets.forEach((bucket, bIdx) => {
           const rawId = (bucket.bucketId ?? '').toLowerCase();
           const rawName = (bucket.displayName ?? '').toLowerCase();
           const rawGroup = groupLabel.toLowerCase();
@@ -59,22 +61,36 @@ async function doRefresh(account: Account, store: Store): Promise<void> {
             rawId.includes('oss') || rawName.includes('oss') ||
             rawId.includes('partner') || rawId.includes('third_party') ||
             rawGroup.includes('claude') || rawGroup.includes('partner') ||
-            rawGroup.includes('third_party') || groupIdx === 1
+            rawGroup.includes('third_party')
           ) {
             category = 'claude_gptoss';
-          } else if (rawId.includes('gemini') || rawName.includes('gemini') || groupIdx === 0) {
+          } else if (rawId.includes('gemini') || rawName.includes('gemini') || rawGroup.includes('gemini')) {
             category = 'gemini';
+          } else if (groups.length > 1) {
+            category = groupIdx === 0 ? 'gemini' : 'claude_gptoss';
+          } else if (groupBuckets.length >= 4) {
+            category = bIdx < 2 ? 'gemini' : 'claude_gptoss';
+          }
+
+          // Format clean descriptive name
+          let cleanName = bucket.displayName ?? bucket.bucketId ?? 'Quota Limit';
+          if (cleanName.toLowerCase().includes('5-hour') || cleanName.toLowerCase().includes('5 hour')) {
+            cleanName = '⏱ Rolling 5-Hour Limit';
+          } else if (cleanName.toLowerCase().includes('week')) {
+            cleanName = '📅 Weekly Limit';
+          } else if (cleanName.toLowerCase().includes('day') || cleanName.toLowerCase().includes('daily')) {
+            cleanName = '🕒 Daily Limit';
           }
 
           buckets.push({
             bucketId: bucket.bucketId ?? '',
-            displayName: bucket.displayName ?? bucket.bucketId ?? '',
+            displayName: cleanName,
             remainingFraction: bucket.remainingFraction ?? 1,
             resetTime: bucket.resetTime,
             groupName: groupLabel || undefined,
             category,
           });
-        }
+        });
       });
 
       const antigravity: NonNullable<AccountQuota['antigravity']> = {

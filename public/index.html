@@ -1066,12 +1066,22 @@ function renderAccounts() {
       }
     }
     if (a.quota?.antigravity) {
-      const g = a.quota.antigravity;
       const allBuckets = g.buckets || [];
       
-      const geminiBuckets = allBuckets.filter((b) => b.category === 'gemini' || (!b.category && !(b.displayName || b.bucketId || '').toLowerCase().match(/(claude|gpt|oss|partner|anthropic)/)));
-      const claudeGptBuckets = allBuckets.filter((b) => b.category === 'claude_gptoss' || (!b.category && (b.displayName || b.bucketId || '').toLowerCase().match(/(claude|gpt|oss|partner|anthropic)/)));
-      const otherBuckets = allBuckets.filter((b) => !geminiBuckets.includes(b) && !claudeGptBuckets.includes(b));
+      let geminiBuckets = allBuckets.filter((b) => b.category === 'gemini');
+      let claudeGptBuckets = allBuckets.filter((b) => b.category === 'claude_gptoss');
+      let otherBuckets = allBuckets.filter((b) => !geminiBuckets.includes(b) && !claudeGptBuckets.includes(b));
+
+      // Robust fallback if older cached quota summary had no category metadata
+      if (!geminiBuckets.length && !claudeGptBuckets.length && allBuckets.length > 0) {
+        if (allBuckets.length >= 4) {
+          geminiBuckets = allBuckets.slice(0, 2);
+          claudeGptBuckets = allBuckets.slice(2);
+          otherBuckets = [];
+        } else {
+          geminiBuckets = allBuckets;
+        }
+      }
 
       let poolsHtml = '';
 

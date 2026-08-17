@@ -242,6 +242,7 @@ export interface KiroUsageLimits {
 }
 
 export async function getUsageLimits(creds: KiroCreds): Promise<KiroUsageLimits> {
+  await getValidAccessToken(creds);
   const params: Record<string, string> = {
     origin: 'AI_EDITOR',
     resourceType: 'AGENTIC_REQUEST',
@@ -249,7 +250,12 @@ export async function getUsageLimits(creds: KiroCreds): Promise<KiroUsageLimits>
   };
   if (creds.profileArn) params.profileArn = creds.profileArn;
   const q = new URLSearchParams(params);
-  const res = await fetch(`${CW_BASE}/getUsageLimits?${q}`, { headers: authHeaders(creds) });
+  let res = await fetch(`${CW_BASE}/getUsageLimits?${q}`, { headers: authHeaders(creds) });
+  if (res.status === 401 || res.status === 403) {
+    // If bearer token was invalidated or expired, force refresh once
+    await refreshKiro(creds);
+    res = await fetch(`${CW_BASE}/getUsageLimits?${q}`, { headers: authHeaders(creds) });
+  }
   if (!res.ok) throw new Error(`getUsageLimits ${res.status}: ${(await res.text()).slice(0, 200)}`);
   return (await res.json()) as KiroUsageLimits;
 }
