@@ -140,7 +140,7 @@ claude --model claude-sonnet-4.5
 ### Cursor / Cline / Roo Code / Zed / Continue
 - **API Base URL**: `http://127.0.0.1:8787/v1`
 - **API Key**: `sk-gw-your-gateway-key`
-- **Model**: `claude-sonnet-4.5`, `gemini-3.1-pro-high`, or any catalog model ID.
+- **Model**: `kiro/claude-sonnet-4.5`, `agy/gemini-3.7-flash`, or any prefixed catalog model ID.
 
 ### cURL — OpenAI Format
 ```bash
@@ -148,7 +148,7 @@ curl http://127.0.0.1:8787/v1/chat/completions \
   -H "Authorization: Bearer sk-gw-your-gateway-key" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "claude-sonnet-4.5",
+    "model": "kiro/claude-sonnet-4.5",
     "messages": [
       {"role": "user", "content": "Explain quantum computing in one sentence."}
     ],
@@ -163,7 +163,7 @@ curl http://127.0.0.1:8787/v1/messages \
   -H "anthropic-version: 2023-06-01" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "claude-sonnet-4.5",
+    "model": "agy/gemini-3.7-flash",
     "max_tokens": 1024,
     "messages": [
       {"role": "user", "content": "Hello world"}
@@ -181,7 +181,7 @@ client = OpenAI(
 )
 
 response = client.chat.completions.create(
-    model="gemini-3.1-pro-high",
+    model="agy/gemini-3.7-flash",
     messages=[{"role": "user", "content": "Hello!"}]
 )
 print(response.choices[0].message.content)
@@ -191,39 +191,39 @@ print(response.choices[0].message.content)
 
 ## 🤖 Supported Models
 
-You can use friendly catalog IDs or pass raw upstream model IDs directly with `kiro/<model>` or `antigravity/<model>`.
+Models are listed with `kiro/{modelid}` and `agy/{modelid}` prefixes. Unprefixed names (e.g. `gemini-3.7-flash`, `claude-sonnet-4.5`) are also resolved automatically.
 
-### Kiro Models (AWS CodeWhisperer)
+### Kiro Models (`kiro/*`)
 | Model ID | Description |
 |---|---|
-| `claude-opus-5` / `claude-opus-5-thinking` / `claude-opus-5-agentic` | Claude Opus 5 (Thinking & Agentic) |
-| `claude-sonnet-5` / `claude-sonnet-5-thinking` / `claude-sonnet-5-agentic` | Claude Sonnet 5 (Thinking & Agentic) |
-| `claude-opus-4.8` / `claude-opus-4.8-thinking` | Claude Opus 4.8 |
-| `claude-sonnet-4.5` / `claude-sonnet-4.5-thinking` / `claude-sonnet-4.5-agentic` | Claude Sonnet 4.5 |
-| `claude-haiku-4.5` | Claude Haiku 4.5 |
-| `claude-3-7-sonnet` / `claude-3-7-sonnet-thinking` | Claude 3.7 Sonnet |
-| `claude-3-5-sonnet` / `claude-3-5-haiku` / `claude-3-opus` | Claude 3.5 / 3 Series |
-| `gpt-5.6-sol` / `gpt-5.6-sol-thinking` | GPT 5.6 Sol (272k context) |
-| `gpt-5.6-terra` / `gpt-5.6-luna` / `gpt-5` / `gpt-5-mini` | GPT 5.6 Series & GPT 5 |
-| `gpt-4.5` / `gpt-4o` / `gpt-4o-mini` / `o3-mini` / `o1` | OpenAI GPT & Reasoning Models |
-| `deepseek-3.2` / `deepseek-v3` / `deepseek-r1` | DeepSeek Series |
-| `qwen3-coder-next` / `qwen-2.5-coder-32b` | Qwen Coder Series |
-| `glm-5` / `minimax-m2.5` / `mistral-large` / `codestral` | GLM 5, MiniMax, Mistral & Codestral |
+| `kiro/claude-opus-5` / `kiro/claude-opus-5-thinking` / `kiro/claude-opus-5-agentic` | Claude Opus 5 (Thinking & Agentic) |
+| `kiro/claude-sonnet-5` / `kiro/claude-sonnet-5-thinking` / `kiro/claude-sonnet-5-agentic` | Claude Sonnet 5 (Thinking & Agentic) |
+| `kiro/claude-opus-4.8` / `kiro/claude-opus-4.8-thinking` | Claude Opus 4.8 |
+| `kiro/claude-sonnet-4.5` / `kiro/claude-sonnet-4.5-thinking` / `kiro/claude-sonnet-4.5-agentic` | Claude Sonnet 4.5 |
+| `kiro/claude-haiku-4.5` | Claude Haiku 4.5 |
+| `kiro/claude-3-7-sonnet` / `kiro/claude-3-7-sonnet-thinking` | Claude 3.7 Sonnet |
+| `kiro/claude-3-5-sonnet` / `kiro/claude-3-5-haiku` / `kiro/claude-3-opus` | Claude 3.5 / 3 Series |
+| `kiro/gpt-5.6-sol` / `kiro/gpt-5.6-sol-thinking` | GPT 5.6 Sol (272k context) |
+| `kiro/gpt-5.6-terra` / `kiro/gpt-5.6-luna` / `kiro/gpt-5` / `kiro/gpt-5-mini` | GPT 5.6 Series & GPT 5 |
+| `kiro/gpt-4.5` / `kiro/gpt-4o` / `kiro/gpt-4o-mini` / `kiro/o3-mini` / `kiro/o1` | OpenAI GPT & Reasoning Models |
+| `kiro/deepseek-3.2` / `kiro/deepseek-v3` / `kiro/deepseek-r1` | DeepSeek Series |
+| `kiro/qwen3-coder-next` / `kiro/qwen-2.5-coder-32b` | Qwen Coder Series |
+| `kiro/glm-5` / `kiro/minimax-m2.5` / `kiro/mistral-large` / `kiro/codestral` | GLM 5, MiniMax, Mistral & Codestral |
 
-### Google Antigravity Models (Cloud Code)
+### Google Antigravity Models (`agy/*`)
 | Model ID | Description |
 |---|---|
-| `gemini-3.7-flash` / `gemini-3.7-flash-high` / `gemini-3.7-flash-medium` | Gemini 3.7 Flash |
-| `gemini-3.6-flash` / `gemini-3.6-flash-high` / `gemini-3.6-flash-low` | Gemini 3.6 Flash |
-| `gemini-3.5-flash` / `gemini-3.5-flash-high` / `gemini-3.5-flash-low` | Gemini 3.5 Flash |
-| `gemini-3.1-pro` / `gemini-3.1-pro-high` / `gemini-3.1-pro-low` | Gemini 3.1 Pro |
-| `gemini-3.1-flash-lite` / `gemini-3-flash` / `gemini-3-pro` | Gemini 3 Series |
-| `gemini-2.5-flash` / `gemini-2.5-flash-thinking` / `gemini-2.5-flash-lite` | Gemini 2.5 Flash |
-| `gemini-2.5-pro` / `gemini-2.0-flash` / `gemini-2.0-pro` / `gemini-1.5-pro` | Gemini 2.5 / 2.0 / 1.5 Series |
-| `claude-sonnet-4-6` / `claude-opus-4-6-thinking` / `claude-sonnet-4-5-gcp` | Claude models hosted on GCP Cloud Code |
-| `gpt-oss-120b` / `gpt-oss-120b-medium` | GPT-OSS 120B |
+| `agy/gemini-3.7-flash` / `agy/gemini-3.7-flash-high` / `agy/gemini-3.7-flash-medium` | Gemini 3.7 Flash |
+| `agy/gemini-3.6-flash` / `agy/gemini-3.6-flash-high` / `agy/gemini-3.6-flash-low` | Gemini 3.6 Flash |
+| `agy/gemini-3.5-flash` / `agy/gemini-3.5-flash-high` / `agy/gemini-3.5-flash-low` | Gemini 3.5 Flash |
+| `agy/gemini-3.1-pro` / `agy/gemini-3.1-pro-high` / `agy/gemini-3.1-pro-low` | Gemini 3.1 Pro |
+| `agy/gemini-3.1-flash-lite` / `agy/gemini-3-flash` / `agy/gemini-3-pro` | Gemini 3 Series |
+| `agy/gemini-2.5-flash` / `agy/gemini-2.5-flash-thinking` / `agy/gemini-2.5-flash-lite` | Gemini 2.5 Flash |
+| `agy/gemini-2.5-pro` / `agy/gemini-2.0-flash` / `agy/gemini-2.0-pro` / `agy/gemini-1.5-pro` | Gemini 2.5 / 2.0 / 1.5 Series |
+| `agy/claude-sonnet-4-6` / `agy/claude-opus-4-6-thinking` / `agy/claude-sonnet-4-5-gcp` | Claude models hosted on GCP Cloud Code |
+| `agy/gpt-oss-120b` / `agy/gpt-oss-120b-medium` | GPT-OSS 120B |
 
-*Custom and future models can also be requested raw via `kiro/<model>` or `antigravity/<model>` or edited in [`src/models.ts`](file:///home/aegis/Project/AI%20Gateway/src/models.ts).*
+*Custom and future models can also be requested raw via `kiro/<model>` or `agy/<model>` or edited in [`src/models.ts`](file:///home/aegis/Project/AI%20Gateway/src/models.ts).*
 
 ---
 

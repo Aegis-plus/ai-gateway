@@ -204,33 +204,39 @@ describe('cleanGeminiSchema and toGeminiTools', () => {
 
 describe('resolveModel', () => {
   it('resolves direct catalog models and dot/hyphen variants', () => {
-    const m1 = resolveModel('claude-sonnet-4.5');
-    expect(m1).toMatchObject({ provider: 'kiro', upstream: 'claude-sonnet-4.5' });
+    const m1 = resolveModel('kiro/claude-sonnet-4.5');
+    expect(m1).toMatchObject({ id: 'kiro/claude-sonnet-4.5', provider: 'kiro', upstream: 'claude-sonnet-4.5' });
 
-    const m2 = resolveModel('claude-sonnet-4-5');
+    const m2 = resolveModel('kiro/claude-sonnet-4-5');
     expect(m2).toMatchObject({ provider: 'kiro', upstream: 'claude-sonnet-4.5' });
 
-    const m3 = resolveModel('gemini-3.7-flash');
-    expect(m3).toMatchObject({ provider: 'antigravity', upstream: 'gemini-3.7-flash' });
+    const m3 = resolveModel('agy/gemini-3.7-flash');
+    expect(m3).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.7-flash' });
 
-    const m4 = resolveModel('claude-3.7-sonnet');
-    expect(m4).toMatchObject({ provider: 'kiro', upstream: 'claude-3.7-sonnet' });
+    const m4 = resolveModel('gemini-3.7-flash');
+    expect(m4).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.7-flash' });
+
+    const m5 = resolveModel('claude-3.7-sonnet');
+    expect(m5).toMatchObject({ provider: 'kiro', upstream: 'claude-3.7-sonnet' });
   });
 
-  it('supports explicit provider prefixes', () => {
+  it('supports explicit provider prefixes and aliases', () => {
     const k = resolveModel('kiro/custom-kiro-model');
     expect(k).toEqual({ id: 'kiro/custom-kiro-model', provider: 'kiro', upstream: 'custom-kiro-model' });
 
-    const a = resolveModel('antigravity/custom-gemini-model');
-    expect(a).toEqual({ id: 'antigravity/custom-gemini-model', provider: 'antigravity', upstream: 'custom-gemini-model' });
+    const a1 = resolveModel('agy/custom-gemini-model');
+    expect(a1).toEqual({ id: 'agy/custom-gemini-model', provider: 'antigravity', upstream: 'custom-gemini-model' });
+
+    const a2 = resolveModel('antigravity/gemini-3.7-flash');
+    expect(a2).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.7-flash' });
   });
 
   it('infers provider for future uncataloged models', () => {
     const gem = resolveModel('gemini-4.0-flash');
-    expect(gem).toEqual({ id: 'gemini-4.0-flash', provider: 'antigravity', upstream: 'gemini-4.0-flash' });
+    expect(gem).toEqual({ id: 'agy/gemini-4.0-flash', provider: 'antigravity', upstream: 'gemini-4.0-flash' });
 
     const cl = resolveModel('claude-6-sonnet');
-    expect(cl).toEqual({ id: 'claude-6-sonnet', provider: 'kiro', upstream: 'claude-6-sonnet' });
+    expect(cl).toEqual({ id: 'kiro/claude-6-sonnet', provider: 'kiro', upstream: 'claude-6-sonnet' });
   });
 });
 
