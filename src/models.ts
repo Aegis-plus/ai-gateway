@@ -38,10 +38,20 @@ export const MODEL_CATALOG: ModelEntry[] = [
   { id: 'claude-sonnet-4.5-agentic', provider: 'kiro', upstream: 'claude-sonnet-4.5-agentic', description: 'Kiro · Claude Sonnet 4.5 (Agentic)' },
   { id: 'claude-sonnet-5-agentic', provider: 'kiro', upstream: 'claude-sonnet-5-agentic', description: 'Kiro · Claude Sonnet 5 (Agentic)' },
   { id: 'claude-opus-5-agentic', provider: 'kiro', upstream: 'claude-opus-5-agentic', description: 'Kiro · Claude Opus 5 (Agentic)' },
-  // Compat aliases (older gateway ids keep working)
+  // Compat & OmniRoute baseline aliases
   { id: 'claude-sonnet-4-5', provider: 'kiro', upstream: 'claude-sonnet-4.5', description: 'Kiro · Claude Sonnet 4.5' },
   { id: 'claude-sonnet-4-5-20250929', provider: 'kiro', upstream: 'claude-sonnet-4.5', description: 'Kiro · Claude Sonnet 4.5' },
+  { id: 'claude-sonnet-4', provider: 'kiro', upstream: 'claude-sonnet-4.5', description: 'Kiro · Claude Sonnet 4' },
+  { id: 'claude-3-7-sonnet', provider: 'kiro', upstream: 'claude-sonnet-4.5', description: 'Kiro · Claude 3.7 Sonnet' },
+  { id: 'claude-3-7-sonnet-20250219', provider: 'kiro', upstream: 'claude-sonnet-4.5', description: 'Kiro · Claude 3.7 Sonnet' },
+  { id: 'claude-3-5-sonnet', provider: 'kiro', upstream: 'claude-sonnet-4.5', description: 'Kiro · Claude 3.5 Sonnet' },
+  { id: 'claude-3-5-sonnet-20241022', provider: 'kiro', upstream: 'claude-sonnet-4.5', description: 'Kiro · Claude 3.5 Sonnet' },
+  { id: 'claude-3-5-sonnet-latest', provider: 'kiro', upstream: 'claude-sonnet-4.5', description: 'Kiro · Claude 3.5 Sonnet' },
   { id: 'claude-3-5-haiku', provider: 'kiro', upstream: 'auto', description: 'Kiro · auto-routed haiku' },
+  { id: 'claude-3-5-haiku-20241022', provider: 'kiro', upstream: 'claude-haiku-4.5', description: 'Kiro · Claude Haiku 4.5' },
+  { id: 'claude-3-haiku', provider: 'kiro', upstream: 'claude-haiku-4.5', description: 'Kiro · Claude Haiku' },
+  { id: 'claude-3-opus', provider: 'kiro', upstream: 'claude-opus-5', description: 'Kiro · Claude Opus' },
+  { id: 'claude-3-opus-20240229', provider: 'kiro', upstream: 'claude-opus-5', description: 'Kiro · Claude Opus' },
 
   // ---- Antigravity (Cloud Code) ----
   { id: 'gemini-3.1-pro-high', provider: 'antigravity', upstream: 'gemini-pro-agent', description: 'Antigravity · Gemini 3.1 Pro (high)' },
@@ -61,12 +71,20 @@ export const MODEL_CATALOG: ModelEntry[] = [
   { id: 'claude-sonnet-4-6', provider: 'antigravity', upstream: 'claude-sonnet-4-6', description: 'Antigravity · Claude Sonnet 4.6 (thinking)' },
   { id: 'claude-opus-4-6-thinking', provider: 'antigravity', upstream: 'claude-opus-4-6-thinking', description: 'Antigravity · Claude Opus 4.6 (Thinking)' },
   { id: 'gpt-oss-120b-medium', provider: 'antigravity', upstream: 'gpt-oss-120b-medium', description: 'Antigravity · GPT-OSS 120B (medium)' },
-  // Compat aliases
+  // Compat & OmniRoute baseline aliases
   { id: 'gemini-3-pro', provider: 'antigravity', upstream: 'gemini-pro-agent', description: 'Antigravity · Gemini 3.1 Pro (high)' },
   { id: 'gemini-3-pro-high', provider: 'antigravity', upstream: 'gemini-pro-agent', description: 'Antigravity · Gemini 3.1 Pro (high)' },
+  { id: 'gemini-3.0-pro', provider: 'antigravity', upstream: 'gemini-pro-agent', description: 'Antigravity · Gemini 3.1 Pro (high)' },
   { id: 'gemini-pro-agent', provider: 'antigravity', upstream: 'gemini-pro-agent', description: 'Antigravity · Gemini Pro agent profile' },
   { id: 'gemini-3-flash', provider: 'antigravity', upstream: 'gemini-3-flash-agent', description: 'Antigravity · Gemini 3.5 Flash (high)' },
+  { id: 'gemini-3.0-flash', provider: 'antigravity', upstream: 'gemini-3-flash-agent', description: 'Antigravity · Gemini 3.5 Flash (high)' },
   { id: 'gemini-2.5-pro', provider: 'antigravity', upstream: 'gemini-2.5-pro', description: 'Antigravity · Gemini 2.5 Pro' },
+  { id: 'gemini-2.0-flash', provider: 'antigravity', upstream: 'gemini-2.5-flash', description: 'Antigravity · Gemini 2.5 Flash' },
+  { id: 'gemini-2.0-flash-exp', provider: 'antigravity', upstream: 'gemini-2.5-flash', description: 'Antigravity · Gemini 2.5 Flash' },
+  { id: 'gemini-2.0-pro', provider: 'antigravity', upstream: 'gemini-2.5-pro', description: 'Antigravity · Gemini 2.5 Pro' },
+  { id: 'gemini-2.0-pro-exp', provider: 'antigravity', upstream: 'gemini-2.5-pro', description: 'Antigravity · Gemini 2.5 Pro' },
+  { id: 'gemini-1.5-pro', provider: 'antigravity', upstream: 'gemini-2.5-pro', description: 'Antigravity · Gemini 2.5 Pro' },
+  { id: 'gemini-1.5-flash', provider: 'antigravity', upstream: 'gemini-2.5-flash', description: 'Antigravity · Gemini 2.5 Flash' },
   { id: 'claude-sonnet-4-5-gcp', provider: 'antigravity', upstream: 'claude-sonnet-4-6', description: 'Antigravity · Claude Sonnet 4.6' },
   { id: 'gpt-oss-120b', provider: 'antigravity', upstream: 'gpt-oss-120b-medium', description: 'Antigravity · GPT-OSS 120B (medium)' },
 ];
