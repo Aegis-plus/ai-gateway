@@ -196,32 +196,34 @@ You can use friendly catalog IDs or pass raw upstream model IDs directly with `k
 ### Kiro Models (AWS CodeWhisperer)
 | Model ID | Description |
 |---|---|
-| `claude-opus-5` / `claude-opus-5-thinking` | Claude Opus 5 (Standard & Extended Thinking) |
-| `claude-sonnet-5` / `claude-sonnet-5-thinking` | Claude Sonnet 5 (Standard & Extended Thinking) |
-| `claude-sonnet-4.5` / `claude-sonnet-4.5-thinking` | Claude Sonnet 4.5 |
+| `claude-opus-5` / `claude-opus-5-thinking` / `claude-opus-5-agentic` | Claude Opus 5 (Thinking & Agentic) |
+| `claude-sonnet-5` / `claude-sonnet-5-thinking` / `claude-sonnet-5-agentic` | Claude Sonnet 5 (Thinking & Agentic) |
 | `claude-opus-4.8` / `claude-opus-4.8-thinking` | Claude Opus 4.8 |
+| `claude-sonnet-4.5` / `claude-sonnet-4.5-thinking` / `claude-sonnet-4.5-agentic` | Claude Sonnet 4.5 |
 | `claude-haiku-4.5` | Claude Haiku 4.5 |
+| `claude-3-7-sonnet` / `claude-3-7-sonnet-thinking` | Claude 3.7 Sonnet |
+| `claude-3-5-sonnet` / `claude-3-5-haiku` / `claude-3-opus` | Claude 3.5 / 3 Series |
 | `gpt-5.6-sol` / `gpt-5.6-sol-thinking` | GPT 5.6 Sol (272k context) |
-| `gpt-5.6-terra` / `gpt-5.6-luna` | GPT 5.6 Terra / Luna variants |
-| `deepseek-3.2` | DeepSeek 3.2 |
-| `qwen3-coder-next` | Qwen3 Coder Next |
-| `glm-5` | GLM 5 |
-| `minimax-m2.5` | MiniMax M2.5 |
-| `claude-sonnet-4.5-agentic` | Claude Sonnet 4.5 (Agentic prompt profile) |
+| `gpt-5.6-terra` / `gpt-5.6-luna` / `gpt-5` / `gpt-5-mini` | GPT 5.6 Series & GPT 5 |
+| `gpt-4.5` / `gpt-4o` / `gpt-4o-mini` / `o3-mini` / `o1` | OpenAI GPT & Reasoning Models |
+| `deepseek-3.2` / `deepseek-v3` / `deepseek-r1` | DeepSeek Series |
+| `qwen3-coder-next` / `qwen-2.5-coder-32b` | Qwen Coder Series |
+| `glm-5` / `minimax-m2.5` / `mistral-large` / `codestral` | GLM 5, MiniMax, Mistral & Codestral |
 
 ### Google Antigravity Models (Cloud Code)
 | Model ID | Description |
 |---|---|
-| `gemini-3.1-pro-high` / `gemini-3.1-pro-low` | Gemini 3.1 Pro (High & Low agent profiles) |
-| `gemini-3.7-flash-high` / `gemini-3.7-flash-medium` | Gemini 3.7 Flash |
-| `gemini-3.6-flash-high` / `gemini-3.6-flash-low` | Gemini 3.6 Flash |
-| `gemini-3.5-flash-high` / `gemini-3.5-flash-low` | Gemini 3.5 Flash |
-| `gemini-3.1-flash-lite` | Gemini 3.1 Flash Lite |
-| `gemini-2.5-flash` / `gemini-2.5-flash-thinking` | Gemini 2.5 Flash |
-| `claude-sonnet-4-6` / `claude-opus-4-6-thinking` | Claude models hosted on GCP Cloud Code |
-| `gpt-oss-120b-medium` | GPT-OSS 120B |
+| `gemini-3.7-flash` / `gemini-3.7-flash-high` / `gemini-3.7-flash-medium` | Gemini 3.7 Flash |
+| `gemini-3.6-flash` / `gemini-3.6-flash-high` / `gemini-3.6-flash-low` | Gemini 3.6 Flash |
+| `gemini-3.5-flash` / `gemini-3.5-flash-high` / `gemini-3.5-flash-low` | Gemini 3.5 Flash |
+| `gemini-3.1-pro` / `gemini-3.1-pro-high` / `gemini-3.1-pro-low` | Gemini 3.1 Pro |
+| `gemini-3.1-flash-lite` / `gemini-3-flash` / `gemini-3-pro` | Gemini 3 Series |
+| `gemini-2.5-flash` / `gemini-2.5-flash-thinking` / `gemini-2.5-flash-lite` | Gemini 2.5 Flash |
+| `gemini-2.5-pro` / `gemini-2.0-flash` / `gemini-2.0-pro` / `gemini-1.5-pro` | Gemini 2.5 / 2.0 / 1.5 Series |
+| `claude-sonnet-4-6` / `claude-opus-4-6-thinking` / `claude-sonnet-4-5-gcp` | Claude models hosted on GCP Cloud Code |
+| `gpt-oss-120b` / `gpt-oss-120b-medium` | GPT-OSS 120B |
 
-*Custom models can be added or renamed at any time in [`src/models.ts`](file:///home/aegis/Project/AI%20Gateway/src/models.ts).*
+*Custom and future models can also be requested raw via `kiro/<model>` or `antigravity/<model>` or edited in [`src/models.ts`](file:///home/aegis/Project/AI%20Gateway/src/models.ts).*
 
 ---
 

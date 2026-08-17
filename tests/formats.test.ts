@@ -3,6 +3,7 @@ import { parseOpenAIRequest, buildOpenAICompletion } from '../src/openai.ts';
 import { parseAnthropicRequest, buildAnthropicMessage } from '../src/anthropic.ts';
 import { EventAggregator } from '../src/aggregate.ts';
 import { cleanGeminiSchema } from '../src/providers/antigravity.ts';
+import { resolveModel } from '../src/models.ts';
 import type { ProviderEvent } from '../src/types.ts';
 
 describe('parseOpenAIRequest', () => {
@@ -198,5 +199,37 @@ describe('cleanGeminiSchema and toGeminiTools', () => {
     const cleaned = cleanGeminiSchema(rawSchema);
     expect((cleaned.properties as any).numChoice.enum).toEqual(['1', '2', '3']);
     expect((cleaned.properties as any).fixedVal.enum).toEqual(['exact']);
+  });
+});
+
+describe('resolveModel', () => {
+  it('resolves direct catalog models and dot/hyphen variants', () => {
+    const m1 = resolveModel('claude-sonnet-4.5');
+    expect(m1).toMatchObject({ provider: 'kiro', upstream: 'claude-sonnet-4.5' });
+
+    const m2 = resolveModel('claude-sonnet-4-5');
+    expect(m2).toMatchObject({ provider: 'kiro', upstream: 'claude-sonnet-4.5' });
+
+    const m3 = resolveModel('gemini-3.7-flash');
+    expect(m3).toMatchObject({ provider: 'antigravity', upstream: 'gemini-3.6-flash-high' });
+
+    const m4 = resolveModel('claude-3.7-sonnet');
+    expect(m4).toMatchObject({ provider: 'kiro', upstream: 'claude-sonnet-4.5' });
+  });
+
+  it('supports explicit provider prefixes', () => {
+    const k = resolveModel('kiro/custom-kiro-model');
+    expect(k).toEqual({ id: 'kiro/custom-kiro-model', provider: 'kiro', upstream: 'custom-kiro-model' });
+
+    const a = resolveModel('antigravity/custom-gemini-model');
+    expect(a).toEqual({ id: 'antigravity/custom-gemini-model', provider: 'antigravity', upstream: 'custom-gemini-model' });
+  });
+
+  it('infers provider for future uncataloged models', () => {
+    const gem = resolveModel('gemini-4.0-flash');
+    expect(gem).toEqual({ id: 'gemini-4.0-flash', provider: 'antigravity', upstream: 'gemini-4.0-flash' });
+
+    const cl = resolveModel('claude-6-sonnet');
+    expect(cl).toEqual({ id: 'claude-6-sonnet', provider: 'kiro', upstream: 'claude-6-sonnet' });
   });
 });
