@@ -203,13 +203,18 @@ function onboardTierId(resp: LoadCodeAssistResponse): string {
 export async function ensureProject(accessToken: string): Promise<string | undefined> {
   let resp = await loadCodeAssist(accessToken);
   let project = projectIdOf(resp);
-  if (!project) {
-    await callInternal('/v1internal:onboardUser', accessToken, {
-      tierId: onboardTierId(resp),
-      metadata: { ideType: 'ANTIGRAVITY', platform: 'PLATFORM_UNSPECIFIED', pluginType: 'GEMINI' },
-    });
-    resp = await loadCodeAssist(accessToken);
-    project = projectIdOf(resp);
+  const targetTier = onboardTierId(resp);
+
+  // If no project, or if user is eligible for paid tier but currentTier is not upgraded
+  if (!project || (resp.paidTier?.id && resp.currentTier?.id !== resp.paidTier.id)) {
+    try {
+      await callInternal('/v1internal:onboardUser', accessToken, {
+        tierId: targetTier,
+        metadata: { ideType: 'ANTIGRAVITY', platform: 'PLATFORM_UNSPECIFIED', pluginType: 'GEMINI' },
+      });
+      resp = await loadCodeAssist(accessToken);
+      project = projectIdOf(resp);
+    } catch {}
   }
   return project;
 }

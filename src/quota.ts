@@ -107,20 +107,20 @@ async function doRefresh(account: Account, store: Store): Promise<void> {
         });
       });
 
+      const ca = codeAssist.status === 'fulfilled' ? codeAssist.value : undefined;
+      const activeTier = ca?.paidTier?.id ?? ca?.currentTier?.id ?? ca?.allowedTiers?.find((t) => t.isDefault)?.id ?? ca?.allowedTiers?.[0]?.id;
+
       const antigravity: NonNullable<AccountQuota['antigravity']> = {
         buckets,
-        tier: codeAssist.status === 'fulfilled' ? (codeAssist.value.currentTier?.id ?? undefined) : undefined,
-        credits:
-          codeAssist.status === 'fulfilled'
-            ? codeAssist.value.paidTier?.availableCredits?.[0]?.creditAmount
-            : undefined,
+        tier: activeTier,
+        credits: ca?.paidTier?.availableCredits?.[0]?.creditAmount,
       };
       account.quota = { checkedAt: new Date().toISOString(), antigravity };
       const project =
-        codeAssist.status === 'fulfilled'
-          ? typeof codeAssist.value.cloudaicompanionProject === 'string'
-            ? codeAssist.value.cloudaicompanionProject
-            : codeAssist.value.cloudaicompanionProject?.id
+        ca
+          ? typeof ca.cloudaicompanionProject === 'string'
+            ? ca.cloudaicompanionProject
+            : ca.cloudaicompanionProject?.id
           : undefined;
       if (project) account.providerData = { ...account.providerData, projectId: project };
     }
