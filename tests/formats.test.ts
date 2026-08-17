@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { parseOpenAIRequest, buildOpenAICompletion } from '../src/openai.ts';
 import { parseAnthropicRequest, buildAnthropicMessage } from '../src/anthropic.ts';
 import { EventAggregator } from '../src/aggregate.ts';
-import { cleanGeminiSchema } from '../src/providers/antigravity.ts';
+import { cleanGeminiSchema, toGeminiContents } from '../src/providers/antigravity.ts';
 import { resolveModel } from '../src/models.ts';
 import type { ProviderEvent } from '../src/types.ts';
 
@@ -231,5 +231,46 @@ describe('resolveModel', () => {
 
     const cl = resolveModel('claude-6-sonnet');
     expect(cl).toEqual({ id: 'claude-6-sonnet', provider: 'kiro', upstream: 'claude-6-sonnet' });
+  });
+});
+
+describe('toGeminiContents', () => {
+  it('injects skip_thought_signature_validator for tool_use functionCall parts', () => {
+    const messages = [
+      { role: 'user' as const, content: [{ type: 'text' as const, text: 'run tool' }] },
+      {
+        role: 'assistant' as const,
+        content: [
+          { type: 'tool_use' as const, id: 'call_123', name: 'default_api:my', input: { arg: 1 } },
+        ],
+      },
+      {
+        role: 'user' as const,
+        content: [
+          { type: 'tool_result' as const, toolUseId: 'call_123', content: JSON.stringify({ status: 'success' }) },
+        ],
+      },
+    ];
+
+    const contents = toGeminiContents(messages);
+
+    expect(contents).toHaveLength(3);
+    // Model turn
+    const modelParts = contents[1]!.parts;
+    expect(modelParts[0]!.functionCall).toEqual({
+      name: 'default_api:my',
+      args: { arg: 1 },
+      thoughtSignature: 'skip_thought_signature_validator',
+      thought_signature: 'skip_thought_signature_validator',
+    });
+    expect(modelParts[0]!.thoughtSignature).toBe('skip_thought_signature_validator');
+    expect(modelParts[0]!.thought_signature).toBe('skip_thought_signature_validator');
+
+    // Tool response turn: ID call_123 must be mapped to function name default_api:my
+    const userParts = contents[2]!.parts;
+    expect(userParts[0]!.functionResponse).toEqual({
+      name: 'default_api:my',
+      response: { status: 'success' },
+    });
   });
 });

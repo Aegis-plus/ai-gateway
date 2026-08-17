@@ -10,9 +10,16 @@ import { ANTIGRAVITY_BASES, contentHeaders, getValidAccessToken } from '../auth/
 interface GeminiPart {
   text?: string;
   inlineData?: { mimeType: string; data: string };
-  functionCall?: { name: string; args: Record<string, unknown> };
+  functionCall?: {
+    name: string;
+    args: Record<string, unknown>;
+    thoughtSignature?: string;
+    thought_signature?: string;
+  };
   functionResponse?: { name: string; response: Record<string, unknown> };
   thought?: boolean;
+  thoughtSignature?: string;
+  thought_signature?: string;
 }
 
 interface GeminiChunk {
@@ -215,20 +222,65 @@ export function classifyAntigravityError(status: number, body: string, grpcStatu
 
 // ---- request building ----
 
-function toGeminiContents(messages: CoreRequest['messages']): { role: 'user' | 'model'; parts: GeminiPart[] }[] {
+export function toGeminiContents(messages: CoreRequest['messages']): { role: 'user' | 'model'; parts: GeminiPart[] }[] {
+  // Map tool call IDs to function names across the entire conversation
+  const toolIdToName = new Map<string, string>();
+  for (const msg of messages) {
+    for (const block of msg.content) {
+      if (block.type === 'tool_use') {
+        toolIdToName.set(block.id, block.name);
+      }
+    }
+  }
+
   const contents: { role: 'user' | 'model'; parts: GeminiPart[] }[] = [];
   for (const msg of messages) {
     const parts: GeminiPart[] = [];
     for (const block of msg.content) {
-      if (block.type === 'text') parts.push({ text: block.text });
-      else if (block.type === 'image') parts.push({ inlineData: { mimeType: block.mediaType, data: block.base64 } });
-      else if (block.type === 'tool_use') parts.push({ functionCall: { name: block.name, args: normalizeArgs(block.input) } });
-      else if (block.type === 'tool_result') parts.push({ functionResponse: { name: block.toolUseId, response: { result: block.content } } });
+      if (block.type === 'text') {
+        parts.push({ text: block.text });
+      } else if (block.type === 'image') {
+        parts.push({ inlineData: { mimeType: block.mediaType, data: block.base64 } });
+      } else if (block.type === 'tool_use') {
+        parts.push({
+          functionCall: {
+            name: block.name,
+            args: normalizeArgs(block.input),
+            thoughtSignature: 'skip_thought_signature_validator',
+            thought_signature: 'skip_thought_signature_validator',
+          },
+          thoughtSignature: 'skip_thought_signature_validator',
+          thought_signature: 'skip_thought_signature_validator',
+        });
+      } else if (block.type === 'tool_result') {
+        const functionName = toolIdToName.get(block.toolUseId) || block.toolUseId;
+        const responseData = typeof block.content === 'string'
+          ? safeParseOrWrap(block.content)
+          : { result: block.content };
+        parts.push({
+          functionResponse: {
+            name: functionName,
+            response: responseData,
+          },
+        });
+      }
     }
     if (parts.length === 0) parts.push({ text: '' });
     contents.push({ role: msg.role === 'assistant' ? 'model' : 'user', parts });
   }
   return contents;
+}
+
+function safeParseOrWrap(content: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(content);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+    return { result: parsed };
+  } catch {
+    return { result: content };
+  }
 }
 
 function normalizeArgs(input: unknown): Record<string, unknown> {
