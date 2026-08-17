@@ -23,20 +23,32 @@ export async function refreshAccountQuota(account: Account, store: Store): Promi
 async function doRefresh(account: Account, store: Store): Promise<void> {
   try {
     if (account.provider === 'kiro') {
-      const limits = await getUsageLimits(account.credentials as never);
-      const kiro: NonNullable<AccountQuota['kiro']> = {
-        usage: (limits.usageBreakdownList ?? []).map((u) => ({
-          resourceType: u.resourceType ?? '',
-          currentUsage: u.currentUsage ?? 0,
-          usageLimit: u.usageLimit ?? 0,
-        })),
-        nextDateReset: limits.nextDateReset,
-        subscriptionType: limits.subscriptionInfo?.subscriptionType,
-      };
-      account.quota = { checkedAt: new Date().toISOString(), kiro };
-      if (limits.userInfo?.email && !account.email) {
-        account.email = limits.userInfo.email;
-        account.label = account.email;
+      try {
+        const limits = await getUsageLimits(account.credentials as never);
+        const kiro: NonNullable<AccountQuota['kiro']> = {
+          usage: (limits.usageBreakdownList ?? []).map((u) => ({
+            resourceType: u.resourceType ?? '',
+            currentUsage: u.currentUsage ?? 0,
+            usageLimit: u.usageLimit ?? 0,
+          })),
+          nextDateReset: limits.nextDateReset,
+          subscriptionType: limits.subscriptionInfo?.subscriptionType,
+        };
+        account.quota = { checkedAt: new Date().toISOString(), kiro };
+        if (limits.userInfo?.email && !account.email) {
+          account.email = limits.userInfo.email;
+          account.label = account.email;
+        }
+      } catch (err) {
+        account.quota = {
+          checkedAt: new Date().toISOString(),
+          kiro: account.quota?.kiro || { usage: [] },
+        };
+        const msg = err instanceof Error ? err.message : String(err);
+        // Only set lastError if not already working
+        if (account.status.state !== 'ok') {
+          account.status.lastError = msg;
+        }
       }
     } else {
       const creds = account.credentials as AntigravityCreds;

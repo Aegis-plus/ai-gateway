@@ -223,9 +223,10 @@ async function listFirstProfileArn(creds: KiroCreds): Promise<string> {
 
 export function authHeaders(creds: KiroCreds): Record<string, string> {
   return {
-    authorization: `Bearer ${creds.accessToken}`,
+    authorization: `Bearer ${creds.accessToken.trim()}`,
     'content-type': 'application/json',
-    'x-amz-user-agent': KIRO_UA,
+    'x-amz-user-agent': 'aws-sdk-js/3.738.0 os/linux lang/js md/nodejs app/KiroIDE',
+    'user-agent': 'aws-sdk-js/3.738.0',
     'x-amzn-codewhisperer-optout': 'true',
   };
 }
@@ -243,21 +244,41 @@ export interface KiroUsageLimits {
 
 export async function getUsageLimits(creds: KiroCreds): Promise<KiroUsageLimits> {
   await getValidAccessToken(creds);
-  const params: Record<string, string> = {
-    origin: 'AI_EDITOR',
-    resourceType: 'AGENTIC_REQUEST',
-    isEmailRequired: 'true',
-  };
-  if (creds.profileArn) params.profileArn = creds.profileArn;
-  const q = new URLSearchParams(params);
-  let res = await fetch(`${CW_BASE}/getUsageLimits?${q}`, { headers: authHeaders(creds) });
-  if (res.status === 401 || res.status === 403) {
-    // If bearer token was invalidated or expired, force refresh once
-    await refreshKiro(creds);
-    res = await fetch(`${CW_BASE}/getUsageLimits?${q}`, { headers: authHeaders(creds) });
+
+  const region = creds.region || KIRO_REGION;
+  const bases = [
+    `https://codewhisperer.${region}.amazonaws.com`,
+    `https://q.${region}.amazonaws.com`,
+    'https://codewhisperer.us-east-1.amazonaws.com',
+  ];
+
+  let lastErr = '';
+  for (const base of bases) {
+    const params: Record<string, string> = {
+      origin: 'AI_EDITOR',
+      isEmailRequired: 'true',
+    };
+    if (creds.profileArn) params.profileArn = creds.profileArn;
+    const q = new URLSearchParams(params);
+
+    try {
+      let res = await fetch(`${base}/getUsageLimits?${q}`, { headers: authHeaders(creds) });
+      if (res.status === 401 || res.status === 403) {
+        try {
+          await refreshKiro(creds);
+          res = await fetch(`${base}/getUsageLimits?${q}`, { headers: authHeaders(creds) });
+        } catch {}
+      }
+      if (res.ok) {
+        return (await res.json()) as KiroUsageLimits;
+      }
+      lastErr = `${res.status}: ${(await res.text()).slice(0, 150)}`;
+    } catch (e) {
+      lastErr = e instanceof Error ? e.message : String(e);
+    }
   }
-  if (!res.ok) throw new Error(`getUsageLimits ${res.status}: ${(await res.text()).slice(0, 200)}`);
-  return (await res.json()) as KiroUsageLimits;
+
+  throw new Error(`getUsageLimits ${lastErr}`);
 }
 
 // ---- Token refresh (single-flight per credentials object) ----
