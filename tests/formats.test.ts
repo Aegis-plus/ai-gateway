@@ -211,13 +211,13 @@ describe('resolveModel', () => {
     expect(m2).toMatchObject({ provider: 'kiro', upstream: 'claude-sonnet-4.5' });
 
     const m3 = resolveModel('agy/gemini-3.7-flash');
-    expect(m3).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.7-flash' });
+    expect(m3).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.6-flash-high' });
 
     const m4 = resolveModel('gemini-3.7-flash');
-    expect(m4).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.7-flash' });
+    expect(m4).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.6-flash-high' });
 
     const m5 = resolveModel('claude-3.7-sonnet');
-    expect(m5).toMatchObject({ provider: 'kiro', upstream: 'claude-3.7-sonnet' });
+    expect(m5).toMatchObject({ provider: 'kiro', upstream: 'claude-sonnet-4.5' });
   });
 
   it('supports explicit provider prefixes and aliases', () => {
@@ -228,7 +228,7 @@ describe('resolveModel', () => {
     expect(a1).toEqual({ id: 'agy/custom-gemini-model', provider: 'antigravity', upstream: 'custom-gemini-model' });
 
     const a2 = resolveModel('antigravity/gemini-3.7-flash');
-    expect(a2).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.7-flash' });
+    expect(a2).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.6-flash-high' });
   });
 
   it('infers provider for future uncataloged models', () => {
