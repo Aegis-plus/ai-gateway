@@ -1,140 +1,305 @@
-# AI Gateway — Kiro + Antigravity
+# AI Gateway — Kiro + Google Antigravity
 
-A lightweight multi-account gateway for **Kiro** and **Google Antigravity** with:
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22.18-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Zero Runtime Dependencies](https://img.shields.io/badge/Dependencies-0%20Runtime-blue.svg)](#features)
+[![Vitest](https://img.shields.io/badge/Tested%20With-Vitest-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-- **OpenAI-compatible API** — `/v1/models`, `/v1/chat/completions` (streaming + non-streaming)
-- **Anthropic-compatible API** — `/v1/messages` (streaming + non-streaming), so Claude Code can use it directly
-- **Multi-account pooling** — add any number of Kiro and Google accounts, round-robin with automatic rotation on rate limits and quota errors
-- **Quota checking** — live per-account usage (Kiro usage limits, Antigravity quota buckets), refreshed every 10 minutes and after errors
-- **Dashboard** — log in to Kiro/Antigravity, manage accounts, view quotas, create API keys
-- **Tool calling & images** — end-to-end on both providers
+A high-performance, multi-account AI Gateway bridging **AWS Kiro** (CodeWhisperer / Q Developer) and **Google Antigravity** (Cloud Code) into unified **OpenAI-** and **Anthropic-compatible** API endpoints.
 
-Zero runtime dependencies (Node built-ins only). State is two JSON files in `data/`.
+---
 
-## Quick start
+## ✨ Features
 
-Requires **Node.js ≥ 22.18** (type stripping) — or any Node 20+ if you run it through `tsx`.
+- 🔌 **Dual API Compatibility**:
+  - **OpenAI Endpoint**: `/v1/models`, `/v1/chat/completions` (streaming SSE & non-streaming JSON).
+  - **Anthropic Endpoint**: `/v1/messages` (streaming SSE & non-streaming JSON), enabling seamless native integration with **Claude Code**.
+- 🔄 **Intelligent Multi-Account Pooling**:
+  - Pool unlimited Kiro and Antigravity accounts.
+  - Transparent round-robin routing with automatic failover on rate limits (`429`), quota limits (`402` / `RESOURCE_EXHAUSTED`), and token expiration.
+- 📊 **Real-Time Quota Monitoring**:
+  - Live per-account quota & credit tracking (Kiro usage limits, Antigravity quota buckets).
+  - Automated background refresh (every 10 minutes) and reactive refresh upon upstream error.
+- 🛠️ **Full Tool Calling & Vision Support**:
+  - End-to-end support for function calling and multimodal image inputs across both providers.
+- 🖥️ **Built-in Web Dashboard**:
+  - Single-page management UI (Vanilla JS + CSS, zero build step) for OAuth logins, device flows, account health, live quotas, server settings, and API key generation.
+- 🔒 **Encrypted Account Portability**:
+  - Export and import account pools with optional AES-256-GCM encryption for seamless migration between local machines and remote servers/VPS.
+- ⚡ **Zero Runtime Dependencies**:
+  - Built entirely with native Node.js standard library APIs (`node:http`, `node:crypto`, `node:fs`, `node:events`, `fetch`).
 
+---
+
+## 🏛️ Architecture & Request Flow
+
+```
+                     ┌──────────────────────────────────────────────┐
+                     │ Client (Claude Code, Cursor, Cline, SDK, UI) │
+                     └──────────────────────┬───────────────────────┘
+                                            │ HTTP Request (Bearer sk-gw-...)
+                                            ▼
+                     ┌──────────────────────────────────────────────┐
+                     │          HTTP Router (src/server.ts)         │
+                     └──────┬────────────────────────────────┬──────┘
+                            │                                │
+            OpenAI Format   ▼                                ▼   Anthropic Format
+                 ┌──────────────────────┐        ┌──────────────────────┐
+                 │    src/openai.ts     │        │   src/anthropic.ts   │
+                 └──────────┬───────────┘        └──────────┬───────────┘
+                            │                               │
+                            └───────────────┬───────────────┘
+                                            ▼
+                             Unified CoreRequest Abstraction
+                                            │
+                                            ▼
+                     ┌──────────────────────────────────────────────┐
+                     │           Pool Manager (src/pool.ts)         │
+                     │  • Account Selection (Round-Robin)           │
+                     │  • Error Cooldowns & Single-Flight Rotation  │
+                     │  • Automatic Token Refresh                   │
+                     └──────┬────────────────────────────────┬──────┘
+                            │                                │
+             Provider: Kiro ▼                                ▼ Provider: Antigravity
+    ┌─────────────────────────────────┐    ┌──────────────────────────────────┐
+    │       src/providers/kiro.ts     │    │   src/providers/antigravity.ts   │
+    │  • AWS Binary EventStream Frame │    │  • Cloud Code Gemini Envelope    │
+    │  • CodeWhisperer Upstreams      │    │  • Server-Sent Events (SSE)      │
+    └────────────────┬────────────────┘    └────────────────┬─────────────────┘
+                     │                                      │
+                     ▼                                      ▼
+           AWS CodeWhisperer API                  Google Cloud Code API
+```
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- **Node.js ≥ 22.18** (for native TypeScript type stripping) or **Node.js ≥ 20.0.0** (executed with `tsx`).
+- npm or pnpm.
+
+### 1. Installation
 ```bash
+# Clone the repository
+git clone git@github.com:Aegis-plus/ai-gateway.git
+cd ai-gateway
+
+# Install dependencies (development tools: tsx, vitest, typescript)
 npm install
-npm run dev          # or: npm start
+
+# Optional: configure custom OAuth credentials
+cp .env.example .env
 ```
 
-Open the dashboard at **http://127.0.0.1:8787/**.
-
-### Add accounts
-
-- **Kiro** — click *"+ Kiro account"*; a device code appears; approve it at the link with your AWS Builder ID. Alternatively, paste the contents of `~/.aws/sso/cache/kiro-auth-token.json` from a machine where the Kiro IDE is signed in (*Import token*).
-- **Antigravity** — click *"+ Antigravity account"*; sign in with Google in the popup. The gateway automatically onboards the Cloud Code companion project on first login.
-
-### Create an API key
-
-In the dashboard → **API Keys** → *Generate key*. Use the `sk-gw-…` key with any OpenAI-compatible client:
-
+### 2. Start the Server
 ```bash
-curl http://127.0.0.1:8787/v1/chat/completions \
-  -H "Authorization: Bearer sk-gw-…" \
-  -H "Content-Type: application/json" \
-  -d '{"model":"claude-sonnet-4-5","messages":[{"role":"user","content":"hi"}],"stream":true}'
+# Development mode (with live reload)
+npm run dev
+
+# Or production mode
+npm start
 ```
 
-**Claude Code:**
+### 3. Open the Dashboard
+Visit **[http://127.0.0.1:8787/](http://127.0.0.1:8787/)** in your browser.
+
+---
+
+## 🔑 Authentication & Account Setup
+
+In the dashboard, add accounts from one or both providers:
+
+### Adding Kiro Accounts
+- **Option A (Device Flow)**: Click **+ Kiro account**. Copy the generated user code and approve it in your browser with your AWS Builder ID.
+- **Option B (Desktop Import)**: Click **Import token** and paste the JSON content from your local `~/.aws/sso/cache/kiro-auth-token.json` (created when logged into the Kiro IDE).
+
+### Adding Google Antigravity Accounts
+- Click **+ Antigravity account** and complete the Google OAuth sign-in.
+- The gateway automatically onboards and configures the Cloud Code companion project on initial login.
+
+### Creating API Keys
+1. In the dashboard, navigate to **API Keys**.
+2. Click **Generate key** to create a gateway key (`sk-gw-...`).
+3. Use this key in your client headers as `Authorization: Bearer sk-gw-...`.
+
+---
+
+## 💻 Client Integration Examples
+
+### Claude Code
+Configure Claude Code to use the gateway's Anthropic-compatible endpoint:
 
 ```bash
 export ANTHROPIC_BASE_URL=http://127.0.0.1:8787
-export ANTHROPIC_AUTH_TOKEN=sk-gw-…   # or ANTHROPIC_API_KEY
-claude --model claude-sonnet-4-5
+export ANTHROPIC_AUTH_TOKEN=sk-gw-your-gateway-key   # or ANTHROPIC_API_KEY
+claude --model claude-sonnet-4.5
 ```
 
-**Cline / Cursor / Roo / Zed:** base URL `http://127.0.0.1:8787/v1`, API key from the dashboard, any model below.
+### Cursor / Cline / Roo Code / Zed / Continue
+- **API Base URL**: `http://127.0.0.1:8787/v1`
+- **API Key**: `sk-gw-your-gateway-key`
+- **Model**: `claude-sonnet-4.5`, `gemini-3.1-pro-high`, or any catalog model ID.
 
-## Models
-
-Friendly ids (edit `src/models.ts` to change them). Raw upstream ids also work with a `kiro/…` or `antigravity/…` prefix.
-
-| Model id | Provider | Notes |
-|---|---|---|
-| `claude-sonnet-4-5` | kiro | Claude Sonnet 4.5 |
-| `claude-sonnet-4` | kiro | Claude Sonnet 4 |
-| `claude-3-7-sonnet` | kiro | Claude 3.7 Sonnet |
-| `claude-3-5-haiku` | kiro | auto-routed by Kiro |
-| `gemini-3-pro`, `gemini-3-pro-high` | antigravity | Gemini 3 Pro |
-| `gemini-3-flash` | antigravity | Gemini 3 Flash |
-| `gemini-2.5-flash`, `gemini-2.5-pro` | antigravity | Gemini 2.5 family |
-| `claude-sonnet-4-5-gcp` | antigravity | Claude Sonnet 4.5 via Antigravity |
-| `gpt-oss-120b` | antigravity | GPT-OSS 120B |
-
-## How it works
-
-```
-client (OpenAI or Anthropic format)
-        │  Bearer sk-gw-…
-        ▼
- src/openai.ts / src/anthropic.ts ──► CoreRequest (unified)
-        ▼
- src/pool.ts ── round-robin over healthy accounts,
-        │        retry on 429/402/401 before the first token,
-        │        cooldown + rotate on quota errors
-        ▼
- src/providers/kiro.ts          src/providers/antigravity.ts
- AWS event-stream ◄──────────►   Gemini SSE (v1internal)
- codewhisperer.us-east-1         cloudcode-pa.googleapis.com
+### cURL — OpenAI Format
+```bash
+curl http://127.0.0.1:8787/v1/chat/completions \
+  -H "Authorization: Bearer sk-gw-your-gateway-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "claude-sonnet-4.5",
+    "messages": [
+      {"role": "user", "content": "Explain quantum computing in one sentence."}
+    ],
+    "stream": true
+  }'
 ```
 
-- **Kiro auth**: AWS SSO device flow (`oidc.us-east-1.amazonaws.com`) → CodeWhisperer profile + `getUsageLimits` quota. Refresh via OIDC (device-login accounts) or `prod.us-east-1.auth.desktop.kiro.dev` (imported IDE tokens).
-- **Antigravity auth**: Google OAuth + PKCE with the Antigravity IDE client → `loadCodeAssist`/`onboardUser` project bootstrap → `streamGenerateContent?alt=sse`. Quota from `retrieveUserQuotaSummary` buckets and in-stream `remainingCredits`.
-
-## Layout
-
-```
-src/index.ts        entry point
-src/server.ts       HTTP routing (/v1/*, /admin/api/*, dashboard)
-src/store.ts        JSON persistence (data/accounts.json, data/config.json)
-src/models.ts       model catalog — edit this to add models
-src/pool.ts         account selection, cooldowns, rotation
-src/quota.ts        periodic quota refresh
-src/openai.ts       OpenAI ⇄ core conversion
-src/anthropic.ts    Anthropic ⇄ core conversion
-src/auth/kiro.ts    device login, refresh, import, getUsageLimits
-src/auth/antigravity.ts  OAuth PKCE, refresh, project bootstrap, quota
-src/providers/kiro.ts    Kiro request/response + event-stream parser
-src/providers/antigravity.ts  Gemini conversion + SSE parsing
-public/index.html   dashboard (vanilla JS, no build step)
-tests/              vitest unit tests
+### cURL — Anthropic Format
+```bash
+curl http://127.0.0.1:8787/v1/messages \
+  -H "x-api-key: sk-gw-your-gateway-key" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "claude-sonnet-4.5",
+    "max_tokens": 1024,
+    "messages": [
+      {"role": "user", "content": "Hello world"}
+    ]
+  }'
 ```
 
-## Backup & restore
+### Python SDK (OpenAI)
+```python
+from openai import OpenAI
 
-Dashboard → **Accounts** → *Backup & restore*:
+client = OpenAI(
+    base_url="http://127.0.0.1:8787/v1",
+    api_key="sk-gw-your-gateway-key"
+)
 
-- **Download backup** — saves all accounts (tokens included) as one JSON file. Optionally enter a passphrase to encrypt it (AES-256-GCM); an unencrypted backup contains raw refresh tokens, so store it somewhere safe.
-- **Restore backup** — pick a backup file (and its passphrase if encrypted). Accounts are merged: duplicates (same provider + email, or same refresh token) are skipped, and cooldowns/stats are reset. This is the easy way to move accounts to another machine (e.g. your VPS) without re-doing the Google/AWS logins.
+response = client.chat.completions.create(
+    model="gemini-3.1-pro-high",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+print(response.choices[0].message.content)
+```
 
-API equivalents: `POST /admin/api/backup` (`{passphrase?}`) and `POST /admin/api/restore` (`{content, passphrase?}`).
+---
 
-## Configuration
+## 🤖 Supported Models
 
-Dashboard → **Settings** (stored in `data/config.json`):
+You can use friendly catalog IDs or pass raw upstream model IDs directly with `kiro/<model>` or `antigravity/<model>`.
 
-| Setting | Default | Purpose |
-|---|---|---|
-| Port | `8787` | listen port (restart to apply) |
-| Bind host | `127.0.0.1` | use `0.0.0.0` to expose on LAN (restart to apply) |
-| Public base URL | — | required for the Antigravity OAuth callback when the dashboard is reached via a non-localhost URL |
-| Dashboard password | — | optional; protects `/admin/api` |
+### Kiro Models (AWS CodeWhisperer)
+| Model ID | Description |
+|---|---|
+| `claude-opus-5` / `claude-opus-5-thinking` | Claude Opus 5 (Standard & Extended Thinking) |
+| `claude-sonnet-5` / `claude-sonnet-5-thinking` | Claude Sonnet 5 (Standard & Extended Thinking) |
+| `claude-sonnet-4.5` / `claude-sonnet-4.5-thinking` | Claude Sonnet 4.5 |
+| `claude-opus-4.8` / `claude-opus-4.8-thinking` | Claude Opus 4.8 |
+| `claude-haiku-4.5` | Claude Haiku 4.5 |
+| `gpt-5.6-sol` / `gpt-5.6-sol-thinking` | GPT 5.6 Sol (272k context) |
+| `gpt-5.6-terra` / `gpt-5.6-luna` | GPT 5.6 Terra / Luna variants |
+| `deepseek-3.2` | DeepSeek 3.2 |
+| `qwen3-coder-next` | Qwen3 Coder Next |
+| `glm-5` | GLM 5 |
+| `minimax-m2.5` | MiniMax M2.5 |
+| `claude-sonnet-4.5-agentic` | Claude Sonnet 4.5 (Agentic prompt profile) |
 
-Environment variables: `GATEWAY_DATA_DIR` (state directory, default `./data`), `ANTIGRAVITY_OAUTH_CLIENT_ID` / `ANTIGRAVITY_OAUTH_CLIENT_SECRET` (override the bundled Antigravity OAuth client).
+### Google Antigravity Models (Cloud Code)
+| Model ID | Description |
+|---|---|
+| `gemini-3.1-pro-high` / `gemini-3.1-pro-low` | Gemini 3.1 Pro (High & Low agent profiles) |
+| `gemini-3.7-flash-high` / `gemini-3.7-flash-medium` | Gemini 3.7 Flash |
+| `gemini-3.6-flash-high` / `gemini-3.6-flash-low` | Gemini 3.6 Flash |
+| `gemini-3.5-flash-high` / `gemini-3.5-flash-low` | Gemini 3.5 Flash |
+| `gemini-3.1-flash-lite` | Gemini 3.1 Flash Lite |
+| `gemini-2.5-flash` / `gemini-2.5-flash-thinking` | Gemini 2.5 Flash |
+| `claude-sonnet-4-6` / `claude-opus-4-6-thinking` | Claude models hosted on GCP Cloud Code |
+| `gpt-oss-120b-medium` | GPT-OSS 120B |
 
-## Notes
+*Custom models can be added or renamed at any time in [`src/models.ts`](file:///home/aegis/Project/AI%20Gateway/src/models.ts).*
 
-- The upstream endpoints are the IDEs' internal APIs and can change without notice; provider code is isolated in `src/providers/` and `src/auth/` so fixes stay local.
-- Use with your own accounts. Both IDEs' free tiers are meant for interactive use — heavy automated traffic may risk your accounts.
-- Kiro does not report token usage; the gateway estimates it (chars ÷ 4) in API responses.
+---
 
-## Development
+## ⚙️ Configuration & Environment
+
+Configuration is stored in `data/config.json` and can be adjusted via the Dashboard **Settings** page or through environment variables.
+
+### Configuration Options
+| Setting | Env Variable | Default | Description |
+|---|---|---|---|
+| Port | `PORT` | `8787` | Port the HTTP gateway listens on. |
+| Host | `HOST` | `127.0.0.1` | Network interface to bind (`0.0.0.0` for LAN access). |
+| Public Base URL | `PUBLIC_BASE_URL` | — | Base URL required for OAuth redirects if behind a reverse proxy. |
+| Dashboard Password | `ADMIN_PASSWORD` | — | Protects `/admin/api` endpoints and settings. |
+| Data Directory | `GATEWAY_DATA_DIR` | `./data` | Filepath for atomic JSON account and config persistence. |
+| Antigravity Client ID | `ANTIGRAVITY_OAUTH_CLIENT_ID` | — | Custom Google OAuth client ID override. |
+| Antigravity Client Secret | `ANTIGRAVITY_OAUTH_CLIENT_SECRET` | — | Custom Google OAuth client secret override. |
+
+---
+
+## 📦 Backup, Security & Migration
+
+- **Encrypted Account Export**: In the dashboard (**Accounts → Backup & restore**), download your full account pool protected by **AES-256-GCM** encryption.
+- **Cross-Host Migration**: Import your backup on remote VPS servers or secondary development machines without repeating web OAuth or device authorization steps.
+- **Deduplication**: Restoring a backup automatically merges accounts, eliminates duplicate tokens, and resets temporary error cooldowns.
+
+---
+
+## 📂 Project Structure
+
+```
+├── .env.example              # Environment variables template
+├── data/                     # Persistent JSON storage (ignored by Git)
+│   ├── accounts.json         # Account credentials, status & quota cache
+│   └── config.json           # Server configuration & API keys
+├── public/
+│   └── index.html            # Single-page web dashboard (Vanilla HTML/CSS/JS)
+├── src/
+│   ├── index.ts              # Server bootstrap and lifecycle handling
+│   ├── server.ts             # HTTP router (/v1/*, /admin/api/*, static dashboard)
+│   ├── types.ts              # TypeScript interfaces (CoreRequest, Account, etc.)
+│   ├── store.ts              # Atomic JSON persistence layer
+│   ├── pool.ts               # Account pooling, rotation, and retry mechanics
+│   ├── models.ts             # Model registry and resolution aliases
+│   ├── quota.ts              # Background quota poller and usage updater
+│   ├── openai.ts             # OpenAI protocol translation adapter
+│   ├── anthropic.ts          # Anthropic protocol translation adapter
+│   ├── backup.ts             # AES-256-GCM backup encryption/decryption
+│   ├── auth/
+│   │   ├── antigravity.ts    # Google OAuth PKCE, token refresh & project setup
+│   │   └── kiro.ts           # AWS SSO device authorization & token refresh
+│   └── providers/
+│       ├── antigravity.ts    # Gemini SSE envelope formatting & response parsing
+│       ├── kiro.ts           # CodeWhisperer request builder & event processing
+│       └── eventstream.ts    # AWS binary EventStream parser
+└── tests/                    # Vitest test suite (protocol conversions, parsers, backup)
+```
+
+---
+
+## 🛠️ Development & Testing
 
 ```bash
-npm run typecheck   # tsc --noEmit
-npm test            # vitest run (30 tests: parsers, conversions, error classification)
-npm run dev         # run with tsx (works on Node 20+)
+# Type checking
+npm run typecheck
+
+# Run unit test suite
+npm test
+
+# Run tests in watch mode
+npx vitest
+
+# Run server with live reload
+npm run dev:watch
 ```
+
+---
+
+## 📄 License
+
+MIT © [Aegis](https://github.com/Aegis-plus)
