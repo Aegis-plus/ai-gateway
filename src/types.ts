@@ -82,6 +82,15 @@ export interface AntigravityCreds {
   email?: string;
 }
 
+export interface AntigravityBucket {
+  bucketId: string;
+  displayName: string;
+  remainingFraction: number;
+  resetTime?: string;
+  groupName?: string;
+  category?: 'gemini' | 'claude_gptoss' | 'general';
+}
+
 export interface AccountQuota {
   /** ISO timestamp of last successful refresh */
   checkedAt?: string;
@@ -92,7 +101,7 @@ export interface AccountQuota {
     subscriptionType?: string;
   };
   antigravity?: {
-    buckets: { bucketId: string; displayName: string; remainingFraction: number; resetTime?: string }[];
+    buckets: AntigravityBucket[];
     tier?: string;
     credits?: number;
   };

@@ -218,6 +218,10 @@ export async function ensureProject(accessToken: string): Promise<string | undef
 
 export interface QuotaSummary {
   groups?: {
+    groupName?: string;
+    displayName?: string;
+    name?: string;
+    modelIds?: string[];
     buckets?: {
       bucketId?: string;
       displayName?: string;

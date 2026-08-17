@@ -42,17 +42,41 @@ async function doRefresh(account: Account, store: Store): Promise<void> {
       const creds = account.credentials as AntigravityCreds;
       const token = await getValidAccessToken(creds);
       const [codeAssist, summary] = await Promise.allSettled([loadCodeAssist(token), retrieveQuotaSummary(token)]);
-      const buckets: { bucketId: string; displayName: string; remainingFraction: number; resetTime?: string }[] = [];
-      for (const group of summary.status === 'fulfilled' ? summary.value.groups ?? [] : []) {
+      const buckets: NonNullable<AccountQuota['antigravity']>['buckets'] = [];
+      const groups = summary.status === 'fulfilled' ? summary.value.groups ?? [] : [];
+
+      groups.forEach((group, groupIdx) => {
+        const groupLabel = group.displayName ?? group.groupName ?? '';
         for (const bucket of group.buckets ?? []) {
+          const rawId = (bucket.bucketId ?? '').toLowerCase();
+          const rawName = (bucket.displayName ?? '').toLowerCase();
+          const rawGroup = groupLabel.toLowerCase();
+
+          let category: 'gemini' | 'claude_gptoss' | 'general' = 'gemini';
+          if (
+            rawId.includes('claude') || rawName.includes('claude') ||
+            rawId.includes('gpt') || rawName.includes('gpt') ||
+            rawId.includes('oss') || rawName.includes('oss') ||
+            rawId.includes('partner') || rawId.includes('third_party') ||
+            rawGroup.includes('claude') || rawGroup.includes('partner') ||
+            rawGroup.includes('third_party') || groupIdx === 1
+          ) {
+            category = 'claude_gptoss';
+          } else if (rawId.includes('gemini') || rawName.includes('gemini') || groupIdx === 0) {
+            category = 'gemini';
+          }
+
           buckets.push({
             bucketId: bucket.bucketId ?? '',
             displayName: bucket.displayName ?? bucket.bucketId ?? '',
             remainingFraction: bucket.remainingFraction ?? 1,
             resetTime: bucket.resetTime,
+            groupName: groupLabel || undefined,
+            category,
           });
         }
-      }
+      });
+
       const antigravity: NonNullable<AccountQuota['antigravity']> = {
         buckets,
         tier: codeAssist.status === 'fulfilled' ? (codeAssist.value.currentTier?.id ?? undefined) : undefined,

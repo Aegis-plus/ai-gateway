@@ -417,6 +417,38 @@
     font-family: var(--font-mono);
     font-size: 11px;
   }
+  .quota-pool {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: grid;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .quota-pool-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    margin-bottom: 2px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .quota-pool-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .quota-pool-models {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
 
   /* Login Flow Box */
   .login-grid {
@@ -970,6 +1002,22 @@ function fmtWhen(ts) {
   return `in ${Math.ceil(hours / 24)}d`;
 }
 
+function fmtReset(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    const ms = d.getTime() - Date.now();
+    if (ms <= 0) return 'resets soon';
+    const mins = Math.ceil(ms / 60000);
+    if (mins < 60) return `resets in ${mins}m`;
+    const hours = Math.ceil(mins / 60);
+    if (hours < 48) return `resets in ${hours}h`;
+    return `resets on ${d.toLocaleDateString()}`;
+  } catch {
+    return '';
+  }
+}
+
 function renderOverview() {
   if (!state) return;
   const kiroCount = state.accounts.filter((a) => a.provider === 'kiro').length;
@@ -1013,24 +1061,82 @@ function renderAccounts() {
         quotaHtml += `<div class="qmeter">
           <span class="qmeter-label">${esc(u.resourceType)} · ${esc(k.subscriptionType || 'CodeWhisperer')}</span>
           <div class="bar-container"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
-          <span class="qmeter-val">${(+u.currentUsage).toFixed(1)} / ${+u.usageLimit} left</span>
+          <span class="qmeter-val">${(+u.currentUsage).toFixed(1)} / ${+u.usageLimit} left ${k.nextDateReset ? '· resets ' + new Date(k.nextDateReset * 1000).toLocaleDateString() : ''}</span>
         </div>`;
       }
     }
     if (a.quota?.antigravity) {
       const g = a.quota.antigravity;
+      const allBuckets = g.buckets || [];
+      
+      const geminiBuckets = allBuckets.filter((b) => b.category === 'gemini' || (!b.category && !(b.displayName || b.bucketId || '').toLowerCase().match(/(claude|gpt|oss|partner|anthropic)/)));
+      const claudeGptBuckets = allBuckets.filter((b) => b.category === 'claude_gptoss' || (!b.category && (b.displayName || b.bucketId || '').toLowerCase().match(/(claude|gpt|oss|partner|anthropic)/)));
+      const otherBuckets = allBuckets.filter((b) => !geminiBuckets.includes(b) && !claudeGptBuckets.includes(b));
+
+      let poolsHtml = '';
+
+      if (geminiBuckets.length) {
+        poolsHtml += `<div class="quota-pool">
+          <div class="quota-pool-header">
+            <span class="quota-pool-title"><span class="badge antigravity" style="font-size:10px; padding:1px 6px;">Gemini</span> Gemini Models Pool</span>
+            <span class="quota-pool-models">Gemini 3.7/3.6/3.5 Flash · 3.1/2.5 Pro</span>
+          </div>`;
+        for (const b of geminiBuckets) {
+          const pct = Math.max(0, Math.min(100, (b.remainingFraction ?? 1) * 100));
+          const cls = pct < 10 ? 'crit' : pct < 35 ? 'warn' : '';
+          poolsHtml += `<div class="qmeter">
+            <span class="qmeter-label">${esc(b.displayName || b.bucketId)}</span>
+            <div class="bar-container"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
+            <span class="qmeter-val">${pct.toFixed(0)}% left${b.resetTime ? ' · ' + fmtReset(b.resetTime) : ''}</span>
+          </div>`;
+        }
+        poolsHtml += `</div>`;
+      }
+
+      if (claudeGptBuckets.length) {
+        poolsHtml += `<div class="quota-pool">
+          <div class="quota-pool-header">
+            <span class="quota-pool-title"><span class="badge" style="font-size:10px; padding:1px 6px; background:rgba(236,72,153,0.12); color:#f472b6; border-color:rgba(236,72,153,0.3);">Claude &amp; Open Models</span> Claude &amp; GPT-OSS Pool</span>
+            <span class="quota-pool-models">Claude Sonnet/Opus 4.6 (GCP) · GPT-OSS 120B</span>
+          </div>`;
+        for (const b of claudeGptBuckets) {
+          const pct = Math.max(0, Math.min(100, (b.remainingFraction ?? 1) * 100));
+          const cls = pct < 10 ? 'crit' : pct < 35 ? 'warn' : '';
+          poolsHtml += `<div class="qmeter">
+            <span class="qmeter-label">${esc(b.displayName || b.bucketId)}</span>
+            <div class="bar-container"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
+            <span class="qmeter-val">${pct.toFixed(0)}% left${b.resetTime ? ' · ' + fmtReset(b.resetTime) : ''}</span>
+          </div>`;
+        }
+        poolsHtml += `</div>`;
+      }
+
+      if (otherBuckets.length) {
+        poolsHtml += `<div class="quota-pool">
+          <div class="quota-pool-header">
+            <span class="quota-pool-title">Additional Quota Pools</span>
+          </div>`;
+        for (const b of otherBuckets) {
+          const pct = Math.max(0, Math.min(100, (b.remainingFraction ?? 1) * 100));
+          const cls = pct < 10 ? 'crit' : pct < 35 ? 'warn' : '';
+          poolsHtml += `<div class="qmeter">
+            <span class="qmeter-label">${esc(b.displayName || b.bucketId)}</span>
+            <div class="bar-container"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
+            <span class="qmeter-val">${pct.toFixed(0)}% left${b.resetTime ? ' · ' + fmtReset(b.resetTime) : ''}</span>
+          </div>`;
+        }
+        poolsHtml += `</div>`;
+      }
+
       if (g.credits !== undefined && g.credits !== null) {
-        quotaHtml += `<div class="qmeter"><span class="qmeter-label">Google One AI Credits</span><div class="bar-container"><div class="bar-fill" style="width:100%"></div></div><span class="qmeter-val">${g.credits} credits</span></div>`;
+        poolsHtml += `<div class="qmeter" style="padding:4px 0;"><span class="qmeter-label">Google One AI Credits</span><div class="bar-container"><div class="bar-fill" style="width:100%"></div></div><span class="qmeter-val">${Number(g.credits).toLocaleString()} credits</span></div>`;
       }
-      for (const b of g.buckets || []) {
-        const pct = Math.max(0, Math.min(100, (b.remainingFraction ?? 1) * 100));
-        const cls = pct < 10 ? 'crit' : pct < 35 ? 'warn' : '';
-        quotaHtml += `<div class="qmeter">
-          <span class="qmeter-label">${esc(b.displayName || b.bucketId)}</span>
-          <div class="bar-container"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
-          <span class="qmeter-val">${pct.toFixed(0)}% available</span>
-        </div>`;
+
+      if (g.tier) {
+        poolsHtml += `<div class="metric-sub" style="margin-top:2px;">Tier: <code>${esc(g.tier)}</code></div>`;
       }
+
+      quotaHtml += poolsHtml;
     }
 
     el.innerHTML = `
