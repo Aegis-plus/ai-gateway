@@ -211,16 +211,16 @@ describe('resolveModel', () => {
     expect(m2).toMatchObject({ provider: 'kiro', upstream: 'claude-sonnet-4.5' });
 
     const m3High = resolveModel('agy/gemini-3.7-flash-high');
-    expect(m3High).toMatchObject({ id: 'agy/gemini-3.7-flash-high', provider: 'antigravity', upstream: 'gemini-3.6-flash-high' });
+    expect(m3High).toMatchObject({ id: 'agy/gemini-3.7-flash-high', provider: 'antigravity', upstream: 'gemini-3.7-flash-high' });
 
     const m3Med = resolveModel('agy/gemini-3.7-flash-medium');
-    expect(m3Med).toMatchObject({ id: 'agy/gemini-3.7-flash-medium', provider: 'antigravity', upstream: 'gemini-3.6-flash-medium' });
+    expect(m3Med).toMatchObject({ id: 'agy/gemini-3.7-flash-medium', provider: 'antigravity', upstream: 'gemini-3.7-flash-medium' });
 
     const m3Low = resolveModel('agy/gemini-3.7-flash-low');
-    expect(m3Low).toMatchObject({ id: 'agy/gemini-3.7-flash-low', provider: 'antigravity', upstream: 'gemini-3.6-flash-low' });
+    expect(m3Low).toMatchObject({ id: 'agy/gemini-3.7-flash-low', provider: 'antigravity', upstream: 'gemini-3.7-flash-low' });
 
     const m4 = resolveModel('gemini-3.7-flash');
-    expect(m4).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.6-flash-high' });
+    expect(m4).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.7-flash-high' });
 
     const m5 = resolveModel('claude-3.7-sonnet');
     expect(m5).toMatchObject({ provider: 'kiro', upstream: 'claude-sonnet-4.5' });
@@ -234,7 +234,7 @@ describe('resolveModel', () => {
     expect(a1).toEqual({ id: 'agy/custom-gemini-model', provider: 'antigravity', upstream: 'custom-gemini-model' });
 
     const a2 = resolveModel('antigravity/gemini-3.7-flash');
-    expect(a2).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.6-flash-high' });
+    expect(a2).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.7-flash-high' });
   });
 
   it('infers provider for future uncataloged models', () => {
