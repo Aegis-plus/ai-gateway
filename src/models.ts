@@ -106,9 +106,9 @@ export const MODEL_CATALOG: ModelEntry[] = [
   // =========================================================================
 
   // ---- Gemini 3.7 Flash ----
-  { id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.7-flash-high', description: 'Antigravity · Gemini 3.7 Flash (High Thinking)' },
-  { id: 'agy/gemini-3.7-flash-high', provider: 'antigravity', upstream: 'gemini-3.7-flash-high', description: 'Antigravity · Gemini 3.7 Flash (High Thinking)' },
-  { id: 'agy/gemini-3.7-flash-thinking', provider: 'antigravity', upstream: 'gemini-3.7-flash-high', description: 'Antigravity · Gemini 3.7 Flash (Thinking)' },
+  { id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.6-flash-high', description: 'Antigravity · Gemini 3.7 Flash (High Thinking)' },
+  { id: 'agy/gemini-3.7-flash-high', provider: 'antigravity', upstream: 'gemini-3.6-flash-high', description: 'Antigravity · Gemini 3.7 Flash (High Thinking)' },
+  { id: 'agy/gemini-3.7-flash-thinking', provider: 'antigravity', upstream: 'gemini-3.6-flash-high', description: 'Antigravity · Gemini 3.7 Flash (Thinking)' },
   { id: 'agy/gemini-3.7-flash-medium', provider: 'antigravity', upstream: 'gemini-3.6-flash-medium', description: 'Antigravity · Gemini 3.7 Flash (Medium Thinking)' },
   { id: 'agy/gemini-3.7-flash-low', provider: 'antigravity', upstream: 'gemini-3.6-flash-low', description: 'Antigravity · Gemini 3.7 Flash (Low Thinking)' },
 

@@ -211,10 +211,10 @@ describe('resolveModel', () => {
     expect(m2).toMatchObject({ provider: 'kiro', upstream: 'claude-sonnet-4.5' });
 
     const mFlash37 = resolveModel('agy/gemini-3.7-flash');
-    expect(mFlash37).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.7-flash-high' });
+    expect(mFlash37).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.6-flash-high' });
 
     const mFlash37High = resolveModel('agy/gemini-3.7-flash-high');
-    expect(mFlash37High).toMatchObject({ id: 'agy/gemini-3.7-flash-high', provider: 'antigravity', upstream: 'gemini-3.7-flash-high' });
+    expect(mFlash37High).toMatchObject({ id: 'agy/gemini-3.7-flash-high', provider: 'antigravity', upstream: 'gemini-3.6-flash-high' });
 
     const mFlash37Med = resolveModel('agy/gemini-3.7-flash-medium');
     expect(mFlash37Med).toMatchObject({ id: 'agy/gemini-3.7-flash-medium', provider: 'antigravity', upstream: 'gemini-3.6-flash-medium' });
@@ -244,7 +244,7 @@ describe('resolveModel', () => {
     expect(mGptOss).toMatchObject({ id: 'agy/gpt-oss-120b', provider: 'antigravity', upstream: 'gpt-oss-120b-medium' });
 
     const m4 = resolveModel('gemini-3.7-flash');
-    expect(m4).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.7-flash-high' });
+    expect(m4).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.6-flash-high' });
 
     const m5 = resolveModel('claude-3.7-sonnet');
     expect(m5).toMatchObject({ provider: 'kiro', upstream: 'claude-sonnet-4.5' });
@@ -258,7 +258,7 @@ describe('resolveModel', () => {
     expect(a1).toEqual({ id: 'agy/custom-gemini-model', provider: 'antigravity', upstream: 'custom-gemini-model' });
 
     const a2 = resolveModel('antigravity/gemini-3.7-flash');
-    expect(a2).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.7-flash-high' });
+    expect(a2).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.6-flash-high' });
   });
 
   it('infers provider for future uncataloged models', () => {
