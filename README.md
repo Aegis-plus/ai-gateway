@@ -193,35 +193,28 @@ print(response.choices[0].message.content)
 
 Models are listed with `kiro/{modelid}` and `agy/{modelid}` prefixes. Unprefixed names (e.g. `gemini-3.7-flash`, `claude-sonnet-4.5`) are also resolved automatically.
 
-### Kiro Models (`kiro/*`)
+### Kiro Free Models (`kiro/*`)
 | Model ID | Description |
 |---|---|
-| `kiro/claude-opus-5` / `kiro/claude-opus-5-thinking` / `kiro/claude-opus-5-agentic` | Claude Opus 5 (Thinking & Agentic) |
-| `kiro/claude-sonnet-5` / `kiro/claude-sonnet-5-thinking` / `kiro/claude-sonnet-5-agentic` | Claude Sonnet 5 (Thinking & Agentic) |
-| `kiro/claude-opus-4.8` / `kiro/claude-opus-4.8-thinking` | Claude Opus 4.8 |
-| `kiro/claude-sonnet-4.5` / `kiro/claude-sonnet-4.5-thinking` / `kiro/claude-sonnet-4.5-agentic` | Claude Sonnet 4.5 |
-| `kiro/claude-haiku-4.5` | Claude Haiku 4.5 |
-| `kiro/claude-3-7-sonnet` / `kiro/claude-3-7-sonnet-thinking` | Claude 3.7 Sonnet |
-| `kiro/claude-3-5-sonnet` / `kiro/claude-3-5-haiku` / `kiro/claude-3-opus` | Claude 3.5 / 3 Series |
-| `kiro/gpt-5.6-sol` / `kiro/gpt-5.6-sol-thinking` | GPT 5.6 Sol (272k context) |
-| `kiro/gpt-5.6-terra` / `kiro/gpt-5.6-luna` / `kiro/gpt-5` / `kiro/gpt-5-mini` | GPT 5.6 Series & GPT 5 |
-| `kiro/gpt-4.5` / `kiro/gpt-4o` / `kiro/gpt-4o-mini` / `kiro/o3-mini` / `kiro/o1` | OpenAI GPT & Reasoning Models |
-| `kiro/deepseek-3.2` / `kiro/deepseek-v3` / `kiro/deepseek-r1` | DeepSeek Series |
-| `kiro/qwen3-coder-next` / `kiro/qwen-2.5-coder-32b` | Qwen Coder Series |
-| `kiro/glm-5` / `kiro/minimax-m2.5` / `kiro/mistral-large` / `kiro/codestral` | GLM 5, MiniMax, Mistral & Codestral |
+| `kiro/claude-sonnet-4.5` / `kiro/claude-sonnet-4.5-thinking` / `kiro/claude-sonnet-4.5-agentic` | Claude Sonnet 4.5 (Thinking & Agentic) |
+| `kiro/claude-haiku-4.5` / `kiro/claude-3-7-sonnet` / `kiro/claude-3-5-sonnet` | Claude Sonnet & Haiku Series |
+| `kiro/deepseek-3.2` / `kiro/deepseek-v3` / `kiro/deepseek-r1` / `kiro/deepseek-coder` | DeepSeek 3.2 Series (Open Weight) |
+| `kiro/qwen3-coder-next` / `kiro/qwen-2.5-coder-32b` / `kiro/qwen-2.5-coder` | Qwen3 Coder Series (Open Weight) |
+| `kiro/minimax-m2.5` / `kiro/minimax-m2.1` / `kiro/minimax-01` | MiniMax Series (Open Weight) |
+| `kiro/glm-5` / `kiro/glm-4-plus` | GLM 5 Series (Open Weight) |
+| `kiro/auto` | Kiro Auto Routing |
 
 ### Google Antigravity Models (`agy/*`)
 | Model ID | Description |
 |---|---|
-| `agy/gemini-3.7-flash` / `agy/gemini-3.7-flash-high` / `agy/gemini-3.7-flash-medium` | Gemini 3.7 Flash |
-| `agy/gemini-3.6-flash` / `agy/gemini-3.6-flash-high` / `agy/gemini-3.6-flash-low` | Gemini 3.6 Flash |
-| `agy/gemini-3.5-flash` / `agy/gemini-3.5-flash-high` / `agy/gemini-3.5-flash-low` | Gemini 3.5 Flash |
-| `agy/gemini-3.1-pro` / `agy/gemini-3.1-pro-high` / `agy/gemini-3.1-pro-low` | Gemini 3.1 Pro |
-| `agy/gemini-3.1-flash-lite` / `agy/gemini-3-flash` / `agy/gemini-3-pro` | Gemini 3 Series |
-| `agy/gemini-2.5-flash` / `agy/gemini-2.5-flash-thinking` / `agy/gemini-2.5-flash-lite` | Gemini 2.5 Flash |
-| `agy/gemini-2.5-pro` / `agy/gemini-2.0-flash` / `agy/gemini-2.0-pro` / `agy/gemini-1.5-pro` | Gemini 2.5 / 2.0 / 1.5 Series |
-| `agy/claude-sonnet-4-6` / `agy/claude-opus-4-6-thinking` / `agy/claude-sonnet-4-5-gcp` | Claude models hosted on GCP Cloud Code |
-| `agy/gpt-oss-120b` / `agy/gpt-oss-120b-medium` | GPT-OSS 120B |
+| `agy/gemini-3.7-flash` / `agy/gemini-3.7-flash-high` / `agy/gemini-3.7-flash-medium` / `agy/gemini-3.7-flash-low` | Gemini 3.7 Flash (High, Medium, Low Thinking) |
+| `agy/gemini-3.6-flash` / `agy/gemini-3.6-flash-high` / `agy/gemini-3.6-flash-medium` / `agy/gemini-3.6-flash-low` | Gemini 3.6 Flash (High, Medium, Low Thinking) |
+| `agy/gemini-3.5-flash` / `agy/gemini-3.5-flash-high` / `agy/gemini-3.5-flash-medium` / `agy/gemini-3.5-flash-low` | Gemini 3.5 Flash (High, Medium, Low Thinking) |
+| `agy/gemini-3.1-pro` / `agy/gemini-3.1-pro-high` / `agy/gemini-3.1-pro-low` | Gemini 3.1 Pro (High, Low Thinking) |
+| `agy/gemini-3.1-flash-lite` / `agy/gemini-3-flash` / `agy/gemini-3-pro` | Gemini 3 Series & Profiles |
+| `agy/claude-sonnet-4-6` / `agy/claude-sonnet-4.6-thinking` | Claude Sonnet 4.6 (Thinking on Cloud Code) |
+| `agy/claude-opus-4-6` / `agy/claude-opus-4.6-thinking` | Claude Opus 4.6 (Thinking on Cloud Code) |
+| `agy/gpt-oss-120b` / `agy/gpt-oss-120b-medium` | GPT-OSS 120B (Medium) |
 
 *Custom and future models can also be requested raw via `kiro/<model>` or `agy/<model>` or edited in [`src/models.ts`](file:///home/aegis/Project/AI%20Gateway/src/models.ts).*
 
