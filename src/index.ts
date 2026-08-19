@@ -12,8 +12,8 @@ const dataDir = process.env.GATEWAY_DATA_DIR ?? join(process.cwd(), 'data');
 const store = new Store(dataDir);
 
 const server = createGatewayServer(store);
-const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (process.env.GATEWAY_PORT ? parseInt(process.env.GATEWAY_PORT, 10) : store.config.port);
-const host = process.env.HOST ?? process.env.BIND_HOST ?? store.config.host ?? '0.0.0.0';
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (process.env.GATEWAY_PORT ? parseInt(process.env.GATEWAY_PORT, 10) : (store.config.port || 8787));
+const host = process.env.HOST ?? process.env.BIND_HOST ?? (store.config.host && store.config.host !== '127.0.0.1' ? store.config.host : '0.0.0.0');
 
 server.on('error', (err: NodeJS.ErrnoException) => {
   console.error(`[gateway] server failed to start on ${host}:${port}:`, err.message);

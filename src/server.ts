@@ -37,9 +37,20 @@ export function createGatewayServer(store: Store): ReturnType<typeof createServe
   });
 
   async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    // Global CORS headers for reverse proxies, Cloudflare Tunnel, and web clients
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key, X-Admin-Key');
+
+    const method = req.method ?? 'GET';
+    if (method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
     const url = new URL(req.url ?? '/', 'http://localhost');
     const path = url.pathname;
-    const method = req.method ?? 'GET';
 
     // ---------- dashboard ----------
     if (method === 'GET' && (path === '/' || path === '/index.html')) {

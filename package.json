@@ -10,13 +10,15 @@
   "scripts": {
     "dev": "tsx src/index.ts",
     "dev:watch": "tsx watch src/index.ts",
-    "start": "node src/index.ts",
+    "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
+  "dependencies": {
+    "tsx": "^4.19.0"
+  },
   "devDependencies": {
     "@types/node": "^22.10.0",
-    "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
   }
