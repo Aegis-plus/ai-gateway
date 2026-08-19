@@ -213,13 +213,15 @@ Models are listed with `kiro/{modelid}` and `agy/{modelid}` prefixes. Unprefixed
 ### Google Antigravity Models (`agy/*`)
 | Model ID | Description |
 |---|---|
-| `agy/gemini-3.7-flash` | Gemini 3.7 Flash |
-| `agy/gemini-3.6-flash` | Gemini 3.6 Flash |
-| `agy/gemini-3.5-flash` | Gemini 3.5 Flash |
-| `agy/gemini-3.1-pro` | Gemini 3.1 Pro |
-| `agy/claude-sonnet-4.6` | Claude Sonnet 4.6 (thinking) |
-| `agy/claude-opus-4.6` | Claude Opus 4.6 (thinking) |
-| `agy/gpt-oss-120b` | GPT-OSS-120b |
+| `agy/gemini-3.7-flash` / `agy/gemini-3.7-flash-high` / `agy/gemini-3.7-flash-medium` | Gemini 3.7 Flash |
+| `agy/gemini-3.6-flash` / `agy/gemini-3.6-flash-high` / `agy/gemini-3.6-flash-low` | Gemini 3.6 Flash |
+| `agy/gemini-3.5-flash` / `agy/gemini-3.5-flash-high` / `agy/gemini-3.5-flash-low` | Gemini 3.5 Flash |
+| `agy/gemini-3.1-pro` / `agy/gemini-3.1-pro-high` / `agy/gemini-3.1-pro-low` | Gemini 3.1 Pro |
+| `agy/gemini-3.1-flash-lite` / `agy/gemini-3-flash` / `agy/gemini-3-pro` | Gemini 3 Series |
+| `agy/gemini-2.5-flash` / `agy/gemini-2.5-flash-thinking` / `agy/gemini-2.5-flash-lite` | Gemini 2.5 Flash |
+| `agy/gemini-2.5-pro` / `agy/gemini-2.0-flash` / `agy/gemini-2.0-pro` / `agy/gemini-1.5-pro` | Gemini 2.5 / 2.0 / 1.5 Series |
+| `agy/claude-sonnet-4-6` / `agy/claude-opus-4-6-thinking` / `agy/claude-sonnet-4-5-gcp` | Claude models hosted on GCP Cloud Code |
+| `agy/gpt-oss-120b` / `agy/gpt-oss-120b-medium` | GPT-OSS 120B |
 
 *Custom and future models can also be requested raw via `kiro/<model>` or `agy/<model>` or edited in [`src/models.ts`](file:///home/aegis/Project/AI%20Gateway/src/models.ts).*
 

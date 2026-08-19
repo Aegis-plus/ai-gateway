@@ -95,56 +95,67 @@ export const MODEL_CATALOG: ModelEntry[] = [
 
   // =========================================================================
   // Google Antigravity (Cloud Code Runtime) -> agy/{modelid}
-  // Available Models & Thinking Levels:
-  // - Gemini 3.7 Flash (high / medium / low)
-  // - Gemini 3.6 Flash (high / medium / low)
-  // - Gemini 3.5 Flash (high / medium / low)
-  // - Gemini 3.1 Pro (high / low)
-  // - Claude Sonnet 4.6 (thinking)
-  // - Claude Opus 4.6 (thinking)
-  // - GPT-OSS-120b (medium)
+  // Active Google Cloud Code Upstream Tiers:
+  // - gemini-3.6-flash-high (Gemini 3.7 / 3.6 Flash High Thinking)
+  // - gemini-3.6-flash-medium / low
+  // - gemini-3-flash-agent
+  // - gemini-pro-agent
+  // - gemini-2.5-flash / gemini-2.5-pro
+  // - claude-sonnet-4-6
+  // - gpt-oss-120b-medium
   // =========================================================================
 
-  // ---- Gemini 3.7 Flash ----
+  // ---- Gemini 3.x Series ----
   { id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.6-flash-high', description: 'Antigravity · Gemini 3.7 Flash (High Thinking)' },
   { id: 'agy/gemini-3.7-flash-high', provider: 'antigravity', upstream: 'gemini-3.6-flash-high', description: 'Antigravity · Gemini 3.7 Flash (High Thinking)' },
-  { id: 'agy/gemini-3.7-flash-thinking', provider: 'antigravity', upstream: 'gemini-3.6-flash-high', description: 'Antigravity · Gemini 3.7 Flash (Thinking)' },
   { id: 'agy/gemini-3.7-flash-medium', provider: 'antigravity', upstream: 'gemini-3.6-flash-medium', description: 'Antigravity · Gemini 3.7 Flash (Medium Thinking)' },
   { id: 'agy/gemini-3.7-flash-low', provider: 'antigravity', upstream: 'gemini-3.6-flash-low', description: 'Antigravity · Gemini 3.7 Flash (Low Thinking)' },
-
-  // ---- Gemini 3.6 Flash ----
   { id: 'agy/gemini-3.6-flash', provider: 'antigravity', upstream: 'gemini-3.6-flash-high', description: 'Antigravity · Gemini 3.6 Flash' },
   { id: 'agy/gemini-3.6-flash-high', provider: 'antigravity', upstream: 'gemini-3.6-flash-high', description: 'Antigravity · Gemini 3.6 Flash (high)' },
-  { id: 'agy/gemini-3.6-flash-thinking', provider: 'antigravity', upstream: 'gemini-3.6-flash-high', description: 'Antigravity · Gemini 3.6 Flash (thinking)' },
   { id: 'agy/gemini-3.6-flash-medium', provider: 'antigravity', upstream: 'gemini-3.6-flash-medium', description: 'Antigravity · Gemini 3.6 Flash (medium)' },
   { id: 'agy/gemini-3.6-flash-low', provider: 'antigravity', upstream: 'gemini-3.6-flash-low', description: 'Antigravity · Gemini 3.6 Flash (low)' },
-
-  // ---- Gemini 3.5 Flash ----
   { id: 'agy/gemini-3.5-flash', provider: 'antigravity', upstream: 'gemini-3-flash-agent', description: 'Antigravity · Gemini 3.5 Flash' },
   { id: 'agy/gemini-3.5-flash-high', provider: 'antigravity', upstream: 'gemini-3-flash-agent', description: 'Antigravity · Gemini 3.5 Flash (high)' },
-  { id: 'agy/gemini-3.5-flash-thinking', provider: 'antigravity', upstream: 'gemini-3-flash-agent', description: 'Antigravity · Gemini 3.5 Flash (thinking)' },
   { id: 'agy/gemini-3.5-flash-medium', provider: 'antigravity', upstream: 'gemini-3.5-flash-low', description: 'Antigravity · Gemini 3.5 Flash (medium)' },
   { id: 'agy/gemini-3.5-flash-low', provider: 'antigravity', upstream: 'gemini-3.5-flash-extra-low', description: 'Antigravity · Gemini 3.5 Flash (low)' },
-
-  // ---- Gemini 3.1 Pro ----
   { id: 'agy/gemini-3.1-pro', provider: 'antigravity', upstream: 'gemini-pro-agent', description: 'Antigravity · Gemini 3.1 Pro' },
   { id: 'agy/gemini-3.1-pro-high', provider: 'antigravity', upstream: 'gemini-pro-agent', description: 'Antigravity · Gemini 3.1 Pro (high)' },
-  { id: 'agy/gemini-3.1-pro-thinking', provider: 'antigravity', upstream: 'gemini-pro-agent', description: 'Antigravity · Gemini 3.1 Pro (thinking)' },
   { id: 'agy/gemini-3.1-pro-low', provider: 'antigravity', upstream: 'gemini-3.1-pro-low', description: 'Antigravity · Gemini 3.1 Pro (low)' },
+  { id: 'agy/gemini-3.1-flash-lite', provider: 'antigravity', upstream: 'gemini-3.1-flash-lite', description: 'Antigravity · Gemini 3.1 Flash Lite' },
+  { id: 'agy/gemini-3-pro', provider: 'antigravity', upstream: 'gemini-pro-agent', description: 'Antigravity · Gemini 3 Pro' },
+  { id: 'agy/gemini-3.0-pro', provider: 'antigravity', upstream: 'gemini-pro-agent', description: 'Antigravity · Gemini 3.0 Pro' },
+  { id: 'agy/gemini-3-pro-high', provider: 'antigravity', upstream: 'gemini-pro-agent', description: 'Antigravity · Gemini 3 Pro (high)' },
+  { id: 'agy/gemini-3-flash', provider: 'antigravity', upstream: 'gemini-3-flash-agent', description: 'Antigravity · Gemini 3 Flash' },
+  { id: 'agy/gemini-3.0-flash', provider: 'antigravity', upstream: 'gemini-3-flash-agent', description: 'Antigravity · Gemini 3.0 Flash' },
+  { id: 'agy/gemini-3-flash-agent', provider: 'antigravity', upstream: 'gemini-3-flash-agent', description: 'Antigravity · Gemini 3 Flash Agent' },
+  { id: 'agy/gemini-pro-agent', provider: 'antigravity', upstream: 'gemini-pro-agent', description: 'Antigravity · Gemini Pro Agent Profile' },
+
+  // ---- Gemini 2.5 & 2.x Series ----
+  { id: 'agy/gemini-2.5-flash', provider: 'antigravity', upstream: 'gemini-2.5-flash', description: 'Antigravity · Gemini 2.5 Flash' },
+  { id: 'agy/gemini-2.5-flash-thinking', provider: 'antigravity', upstream: 'gemini-2.5-flash-thinking', description: 'Antigravity · Gemini 2.5 Flash (Thinking)' },
+  { id: 'agy/gemini-2.5-flash-lite', provider: 'antigravity', upstream: 'gemini-2.5-flash-lite', description: 'Antigravity · Gemini 2.5 Flash Lite' },
+  { id: 'agy/gemini-2.5-pro', provider: 'antigravity', upstream: 'gemini-2.5-pro', description: 'Antigravity · Gemini 2.5 Pro' },
+  { id: 'agy/gemini-2.0-flash', provider: 'antigravity', upstream: 'gemini-2.5-flash', description: 'Antigravity · Gemini 2.5 Flash' },
+  { id: 'agy/gemini-2.0-flash-exp', provider: 'antigravity', upstream: 'gemini-2.5-flash', description: 'Antigravity · Gemini 2.5 Flash (Exp)' },
+  { id: 'agy/gemini-2.0-flash-thinking-exp', provider: 'antigravity', upstream: 'gemini-2.5-flash-thinking', description: 'Antigravity · Gemini 2.5 Flash (Thinking Exp)' },
+  { id: 'agy/gemini-2.0-pro', provider: 'antigravity', upstream: 'gemini-2.5-pro', description: 'Antigravity · Gemini 2.5 Pro' },
+  { id: 'agy/gemini-2.0-pro-exp', provider: 'antigravity', upstream: 'gemini-2.5-pro', description: 'Antigravity · Gemini 2.5 Pro (Exp)' },
+  { id: 'agy/gemini-1.5-pro', provider: 'antigravity', upstream: 'gemini-2.5-pro', description: 'Antigravity · Gemini 2.5 Pro' },
+  { id: 'agy/gemini-1.5-pro-latest', provider: 'antigravity', upstream: 'gemini-2.5-pro', description: 'Antigravity · Gemini 2.5 Pro (Latest)' },
+  { id: 'agy/gemini-1.5-flash', provider: 'antigravity', upstream: 'gemini-2.5-flash', description: 'Antigravity · Gemini 2.5 Flash' },
+  { id: 'agy/gemini-1.5-flash-latest', provider: 'antigravity', upstream: 'gemini-2.5-flash', description: 'Antigravity · Gemini 2.5 Flash (Latest)' },
 
   // ---- Claude Hosted on GCP (Antigravity) ----
-  { id: 'agy/claude-sonnet-4.6', provider: 'antigravity', upstream: 'claude-sonnet-4-6', description: 'Antigravity · Claude Sonnet 4.6 (thinking)' },
-  { id: 'agy/claude-sonnet-4.6-thinking', provider: 'antigravity', upstream: 'claude-sonnet-4-6', description: 'Antigravity · Claude Sonnet 4.6 (thinking)' },
   { id: 'agy/claude-sonnet-4-6', provider: 'antigravity', upstream: 'claude-sonnet-4-6', description: 'Antigravity · Claude Sonnet 4.6 (thinking)' },
-  { id: 'agy/claude-sonnet-4-6-thinking', provider: 'antigravity', upstream: 'claude-sonnet-4-6', description: 'Antigravity · Claude Sonnet 4.6 (thinking)' },
-  { id: 'agy/claude-opus-4.6', provider: 'antigravity', upstream: 'claude-opus-4-6-thinking', description: 'Antigravity · Claude Opus 4.6 (thinking)' },
-  { id: 'agy/claude-opus-4.6-thinking', provider: 'antigravity', upstream: 'claude-opus-4-6-thinking', description: 'Antigravity · Claude Opus 4.6 (thinking)' },
-  { id: 'agy/claude-opus-4-6', provider: 'antigravity', upstream: 'claude-opus-4-6-thinking', description: 'Antigravity · Claude Opus 4.6 (thinking)' },
-  { id: 'agy/claude-opus-4-6-thinking', provider: 'antigravity', upstream: 'claude-opus-4-6-thinking', description: 'Antigravity · Claude Opus 4.6 (thinking)' },
+  { id: 'agy/claude-sonnet-4.6', provider: 'antigravity', upstream: 'claude-sonnet-4-6', description: 'Antigravity · Claude Sonnet 4.6 (thinking)' },
+  { id: 'agy/claude-opus-4-6-thinking', provider: 'antigravity', upstream: 'claude-opus-4-6-thinking', description: 'Antigravity · Claude Opus 4.6 (Thinking)' },
+  { id: 'agy/claude-opus-4.6-thinking', provider: 'antigravity', upstream: 'claude-opus-4-6-thinking', description: 'Antigravity · Claude Opus 4.6 (Thinking)' },
+  { id: 'agy/claude-sonnet-4-5-gcp', provider: 'antigravity', upstream: 'claude-sonnet-4-6', description: 'Antigravity · Claude Sonnet 4.6 (GCP)' },
+  { id: 'agy/claude-sonnet-4.5-gcp', provider: 'antigravity', upstream: 'claude-sonnet-4-6', description: 'Antigravity · Claude Sonnet 4.6 (GCP)' },
 
   // ---- Open Source on GCP (Antigravity) ----
-  { id: 'agy/gpt-oss-120b', provider: 'antigravity', upstream: 'gpt-oss-120b-medium', description: 'Antigravity · GPT-OSS-120b' },
-  { id: 'agy/gpt-oss-120b-medium', provider: 'antigravity', upstream: 'gpt-oss-120b-medium', description: 'Antigravity · GPT-OSS-120b (medium)' },
+  { id: 'agy/gpt-oss-120b', provider: 'antigravity', upstream: 'gpt-oss-120b-medium', description: 'Antigravity · GPT-OSS 120B' },
+  { id: 'agy/gpt-oss-120b-medium', provider: 'antigravity', upstream: 'gpt-oss-120b-medium', description: 'Antigravity · GPT-OSS 120B (medium)' },
 ];
 
 /**
