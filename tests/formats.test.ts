@@ -210,14 +210,38 @@ describe('resolveModel', () => {
     const m2 = resolveModel('kiro/claude-sonnet-4-5');
     expect(m2).toMatchObject({ provider: 'kiro', upstream: 'claude-sonnet-4.5' });
 
-    const m3High = resolveModel('agy/gemini-3.7-flash-high');
-    expect(m3High).toMatchObject({ id: 'agy/gemini-3.7-flash-high', provider: 'antigravity', upstream: 'gemini-3.6-flash-high' });
+    const mFlash37 = resolveModel('agy/gemini-3.7-flash');
+    expect(mFlash37).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.6-flash-high' });
 
-    const m3Med = resolveModel('agy/gemini-3.7-flash-medium');
-    expect(m3Med).toMatchObject({ id: 'agy/gemini-3.7-flash-medium', provider: 'antigravity', upstream: 'gemini-3.6-flash-medium' });
+    const mFlash37High = resolveModel('agy/gemini-3.7-flash-high');
+    expect(mFlash37High).toMatchObject({ id: 'agy/gemini-3.7-flash-high', provider: 'antigravity', upstream: 'gemini-3.6-flash-high' });
 
-    const m3Low = resolveModel('agy/gemini-3.7-flash-low');
-    expect(m3Low).toMatchObject({ id: 'agy/gemini-3.7-flash-low', provider: 'antigravity', upstream: 'gemini-3.6-flash-low' });
+    const mFlash37Med = resolveModel('agy/gemini-3.7-flash-medium');
+    expect(mFlash37Med).toMatchObject({ id: 'agy/gemini-3.7-flash-medium', provider: 'antigravity', upstream: 'gemini-3.6-flash-medium' });
+
+    const mFlash37Low = resolveModel('agy/gemini-3.7-flash-low');
+    expect(mFlash37Low).toMatchObject({ id: 'agy/gemini-3.7-flash-low', provider: 'antigravity', upstream: 'gemini-3.6-flash-low' });
+
+    const mFlash36 = resolveModel('agy/gemini-3.6-flash');
+    expect(mFlash36).toMatchObject({ id: 'agy/gemini-3.6-flash', provider: 'antigravity', upstream: 'gemini-3.6-flash-high' });
+
+    const mFlash35 = resolveModel('agy/gemini-3.5-flash');
+    expect(mFlash35).toMatchObject({ id: 'agy/gemini-3.5-flash', provider: 'antigravity', upstream: 'gemini-3-flash-agent' });
+
+    const mPro31 = resolveModel('agy/gemini-3.1-pro');
+    expect(mPro31).toMatchObject({ id: 'agy/gemini-3.1-pro', provider: 'antigravity', upstream: 'gemini-pro-agent' });
+
+    const mSonnet = resolveModel('agy/claude-sonnet-4.6');
+    expect(mSonnet).toMatchObject({ id: 'agy/claude-sonnet-4.6', provider: 'antigravity', upstream: 'claude-sonnet-4-6' });
+
+    const mSonnetThinking = resolveModel('agy/claude-sonnet-4.6-thinking');
+    expect(mSonnetThinking).toMatchObject({ id: 'agy/claude-sonnet-4.6-thinking', provider: 'antigravity', upstream: 'claude-sonnet-4-6' });
+
+    const mOpus = resolveModel('agy/claude-opus-4.6');
+    expect(mOpus).toMatchObject({ id: 'agy/claude-opus-4.6', provider: 'antigravity', upstream: 'claude-opus-4-6-thinking' });
+
+    const mGptOss = resolveModel('agy/gpt-oss-120b');
+    expect(mGptOss).toMatchObject({ id: 'agy/gpt-oss-120b', provider: 'antigravity', upstream: 'gpt-oss-120b-medium' });
 
     const m4 = resolveModel('gemini-3.7-flash');
     expect(m4).toMatchObject({ id: 'agy/gemini-3.7-flash', provider: 'antigravity', upstream: 'gemini-3.6-flash-high' });

@@ -1448,7 +1448,7 @@ function renderAccounts() {
         poolsHtml += `<div class="quota-pool">
           <div class="quota-pool-header">
             <span class="quota-pool-title"><span class="badge antigravity" style="font-size:10px; padding:1px 6px;">Gemini</span> Gemini Models Pool</span>
-            <span class="quota-pool-models">Gemini 3.7/3.6/3.5 Flash · 3.1/2.5 Pro</span>
+            <span class="quota-pool-models">Gemini 3.7/3.6/3.5 Flash · 3.1 Pro</span>
           </div>`;
         for (const b of geminiBuckets) {
           const pct = Math.max(0, Math.min(100, (b.remainingFraction ?? 1) * 100));
