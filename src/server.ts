@@ -53,8 +53,8 @@ export function createGatewayServer(store: Store): ReturnType<typeof createServe
     }
 
     // ---------- public API ----------
-    if (path === '/health') {
-      json(res, 200, { ok: true });
+    if (path === '/health' || path === '/healthz' || path === '/ping') {
+      json(res, 200, { ok: true, status: 'healthy' });
       return;
     }
     // Accept both /v1/... and bare /models, /chat/completions, /messages so

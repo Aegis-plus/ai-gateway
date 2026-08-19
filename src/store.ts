@@ -11,8 +11,8 @@ export interface GatewayState {
 }
 
 const DEFAULT_CONFIG: Config = {
-  port: 8787,
-  host: '127.0.0.1',
+  port: process.env.PORT ? parseInt(process.env.PORT, 10) : 8787,
+  host: process.env.HOST ?? process.env.BIND_HOST ?? '0.0.0.0',
   apiKeys: [],
 };
 
@@ -50,7 +50,9 @@ export class Store {
   private atomicWrite(path: string, data: string) {
     const tmp = join(dirname(path), `.${Math.random().toString(36).slice(2)}.tmp`);
     writeFileSync(tmp, data, { encoding: 'utf8', mode: 0o600 });
-    chmodSync(tmp, 0o600);
+    try {
+      chmodSync(tmp, 0o600);
+    } catch {}
     renameSync(tmp, path);
   }
 

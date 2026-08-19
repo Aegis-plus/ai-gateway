@@ -81,14 +81,11 @@ export async function* streamAntigravity(
       if (candidateRes.status === 429 || candidateRes.status === 404 || candidateRes.status >= 500) {
         continue;
       }
-      // For other client errors (e.g. 400 Bad Request, 401 Unauthorized), stop retrying
+      // For non-retryable errors (e.g. 400 Bad Request, 401 Unauthorized), stop
       res = candidateRes;
-      throw lastError;
+      break;
     } catch (err) {
       lastError = err;
-      if (err instanceof ProviderError && (err.kind === 'auth' || err.kind === 'upstream')) {
-        throw err;
-      }
     }
   }
   if (!res || !res.ok) {
