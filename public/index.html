@@ -503,6 +503,76 @@
     font-size: 12px;
   }
 
+  /* Keys List */
+  #keys-list {
+    display: grid;
+    gap: 12px;
+  }
+  .key-item {
+    background: var(--panel-sub);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.15s ease;
+  }
+  .key-item.revoked {
+    opacity: 0.72;
+    border-style: dashed;
+    border-color: rgba(244, 63, 94, 0.3);
+  }
+  .key-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .key-identity {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .key-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .key-code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--bg-surface);
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--accent);
+    letter-spacing: 0.02em;
+    user-select: all;
+  }
+  .key-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .key-actions button {
+    padding: 6px 12px;
+    min-height: 34px;
+    font-size: 12px;
+  }
+  .key-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    flex-wrap: wrap;
+    font-variant-numeric: tabular-nums;
+  }
+
   /* Quota Section */
   .quota-section {
     margin-top: 14px;
@@ -760,17 +830,71 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* In-App Password Modal */
+  /* Password field with toggle */
+  .password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+  .password-wrapper input {
+    padding-right: 42px;
+  }
+  .password-toggle-btn {
+    position: absolute;
+    right: 8px;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    padding: 6px;
+    min-height: auto;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: color 0.15s ease;
+    user-select: none;
+  }
+  .password-toggle-btn:hover {
+    color: var(--text);
+  }
+
+  /* Snippet Hydration Bar */
+  .snippet-key-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    flex-wrap: wrap;
+  }
+  .snippet-key-bar select {
+    width: auto;
+    min-width: 180px;
+    padding: 4px 10px;
+    min-height: 32px;
+    font-size: 12px;
+  }
+
+  /* In-App Modals (Admin & Confirm) */
   .modal-backdrop {
     display: none;
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.78);
     z-index: 200;
     align-items: center;
     justify-content: center;
     padding: 20px;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
   .modal-backdrop.show { display: flex; }
   .modal-card {
@@ -779,7 +903,7 @@
     border-radius: var(--radius-lg);
     padding: 24px;
     width: 100%;
-    max-width: 420px;
+    max-width: 440px;
     box-shadow: var(--shadow-lg);
     animation: slideDown 0.2s ease;
   }
@@ -891,19 +1015,19 @@
     </a>
 
     <!-- Desktop Tabs Navigation -->
-    <nav class="desktop-nav">
-      <button data-tab="accounts" class="active">📊 Overview</button>
-      <button data-tab="login">⚡ Add Account</button>
-      <button data-tab="models">🤖 Models</button>
-      <button data-tab="keys">🔑 API Keys</button>
-      <button data-tab="settings">⚙️ Settings</button>
+    <nav class="desktop-nav" role="tablist" aria-label="Desktop Navigation">
+      <button data-tab="accounts" class="active" role="tab" aria-selected="true" aria-controls="tab-accounts">📊 Overview</button>
+      <button data-tab="login" role="tab" aria-selected="false" aria-controls="tab-login">⚡ Add Account</button>
+      <button data-tab="models" role="tab" aria-selected="false" aria-controls="tab-models">🤖 Models</button>
+      <button data-tab="keys" role="tab" aria-selected="false" aria-controls="tab-keys">🔑 API Keys</button>
+      <button data-tab="settings" role="tab" aria-selected="false" aria-controls="tab-settings">⚙️ Settings</button>
     </nav>
   </div>
 </header>
 
 <!-- MAIN CONTENT -->
 <main>
-  <div id="notice" class="notice"></div>
+  <div id="notice" class="notice" role="status" aria-live="polite"></div>
 
   <!-- TAB 1: ACCOUNTS & OVERVIEW -->
   <section id="tab-accounts">
@@ -1040,13 +1164,19 @@
     <div class="card">
       <div class="card-header">
         <div>
-          <div class="card-title">Create Gateway API Key</div>
+          <div class="card-title">Generate Gateway API Key</div>
           <div class="card-subtitle">Generate bearer keys for your local coding agents (Claude Code, Cursor, Cline, Roo Code, etc.).</div>
         </div>
       </div>
       <div class="form-row">
-        <input type="text" id="key-name-input" placeholder="Key description (e.g. macbook-cursor, claude-code-dev)" style="width:280px;">
-        <button class="primary" id="btn-create-key">Generate Key</button>
+        <input type="text" id="key-name-input" placeholder="Key description (e.g. macbook-cursor, claude-code-dev)" style="flex:1; min-width:240px;">
+        <select id="key-expiry-select" style="width:170px;">
+          <option value="0">Never expires</option>
+          <option value="30">Expires in 30 days</option>
+          <option value="90">Expires in 90 days</option>
+          <option value="365">Expires in 1 year</option>
+        </select>
+        <button class="primary" id="btn-create-key">+ Generate Key</button>
       </div>
       <div id="new-key-banner" style="margin-top:14px;"></div>
     </div>
@@ -1054,72 +1184,70 @@
     <div class="card">
       <div class="card-header">
         <div>
+          <div class="card-title">Manage API Keys (<span id="key-count">0</span>)</div>
+          <div class="card-subtitle">View, copy preview, revoke, or delete active and revoked bearer keys.</div>
+        </div>
+        <button class="ghost" onclick="refreshState()">↻ Refresh Keys</button>
+      </div>
+      <div id="keys-list"><div class="empty-state">Loading API keys…</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div>
           <div class="card-title">Quick Integration Snippets</div>
-          <div class="card-subtitle">Copy-paste configuration for your favorite AI developer tools.</div>
+          <div class="card-subtitle">Copy-paste ready configurations for your AI coding agents and tools.</div>
         </div>
       </div>
 
-      <div class="snippet-nav">
-        <button class="active" data-snippet="claude">🟣 Claude Code</button>
-        <button data-snippet="cursor">⚡ Cursor / Cline</button>
-        <button data-snippet="roo">🤖 Roo Code</button>
-        <button data-snippet="python">🐍 Python SDK</button>
+      <div class="snippet-key-bar">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="color:var(--text-sub); font-weight:500;">Active Bearer Key:</span>
+          <select id="snippet-key-select" onchange="renderSnippets()"></select>
+        </div>
+        <span id="snippet-hydration-status" class="badge ok">✓ Auto-hydrated</span>
+      </div>
+
+      <div class="snippet-nav" role="tablist" aria-label="Tool Snippets">
+        <button class="active" data-snippet="claude" role="tab" aria-selected="true">🟣 Claude Code</button>
+        <button data-snippet="cursor" role="tab" aria-selected="false">⚡ Cursor / Cline</button>
+        <button data-snippet="roo" role="tab" aria-selected="false">🤖 Roo Code</button>
+        <button data-snippet="python" role="tab" aria-selected="false">🐍 Python SDK</button>
       </div>
 
       <div id="snippet-container">
         <!-- Claude Code snippet -->
         <div id="snip-claude" class="form-group snippet-view">
           <div class="code-snippet">
-            <pre>export ANTHROPIC_BASE_URL="http://127.0.0.1:8787"
-export ANTHROPIC_API_KEY="sk-gw-your-api-key"
-export ANTHROPIC_MODEL="kiro/claude-sonnet-4.5"</pre>
-            <button class="ghost copy-btn" onclick="copyText('export ANTHROPIC_BASE_URL=\x22http://127.0.0.1:8787\x22\nexport ANTHROPIC_API_KEY=\x22sk-gw-your-api-key\x22\nexport ANTHROPIC_MODEL=\x22kiro/claude-sonnet-4.5\x22', this)">Copy</button>
+            <pre id="code-claude"></pre>
+            <button class="ghost copy-btn" id="btn-copy-claude">Copy</button>
           </div>
         </div>
 
         <!-- Cursor snippet -->
         <div id="snip-cursor" class="form-group snippet-view" style="display:none;">
           <div class="code-snippet">
-            <pre>Base URL : http://127.0.0.1:8787/v1
-API Key  : sk-gw-your-api-key
-Model    : kiro/claude-sonnet-4.5  OR  agy/gemini-3.7-flash</pre>
-            <button class="ghost copy-btn" onclick="copyText('http://127.0.0.1:8787/v1', this)">Copy URL</button>
+            <pre id="code-cursor"></pre>
+            <button class="ghost copy-btn" id="btn-copy-cursor">Copy</button>
           </div>
         </div>
 
         <!-- Roo Code snippet -->
         <div id="snip-roo" class="form-group snippet-view" style="display:none;">
           <div class="code-snippet">
-            <pre>Provider : OpenAI Compatible
-Base URL : http://127.0.0.1:8787/v1
-API Key  : sk-gw-your-api-key
-Model ID : agy/gemini-3.7-flash</pre>
-            <button class="ghost copy-btn" onclick="copyText('http://127.0.0.1:8787/v1', this)">Copy</button>
+            <pre id="code-roo"></pre>
+            <button class="ghost copy-btn" id="btn-copy-roo">Copy</button>
           </div>
         </div>
 
         <!-- Python snippet -->
         <div id="snip-python" class="form-group snippet-view" style="display:none;">
           <div class="code-snippet">
-            <pre>from openai import OpenAI
-
-client = OpenAI(base_url="http://127.0.0.1:8787/v1", api_key="sk-gw-your-api-key")
-resp = client.chat.completions.create(
-    model="kiro/claude-sonnet-4.5",
-    messages=[{"role": "user", "content": "Hello!"}],
-)
-print(resp.choices[0].message.content)</pre>
-            <button class="ghost copy-btn" onclick="copyText('from openai import OpenAI\n\nclient = OpenAI(base_url=\x22http://127.0.0.1:8787/v1\x22, api_key=\x22sk-gw-your-api-key\x22)\nresp = client.chat.completions.create(\n    model=\x22kiro/claude-sonnet-4.5\x22,\n    messages=[{\x22role\x22: \x22user\x22, \x22content\x22: \x22Hello!\x22}],\n)\nprint(resp.choices[0].message.content)', this)">Copy</button>
+            <pre id="code-python"></pre>
+            <button class="ghost copy-btn" id="btn-copy-python">Copy</button>
           </div>
         </div>
       </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">Active API Keys (<span id="key-count">0</span>)</div>
-      </div>
-      <div id="keys-list"><div class="empty-state">No keys configured yet.</div></div>
     </div>
   </section>
 
@@ -1142,14 +1270,17 @@ print(resp.choices[0].message.content)</pre>
 
       <div class="form-group">
         <label>Admin Dashboard Password (Optional)</label>
-        <input type="password" id="set-adminpass" placeholder="Leave empty for open local access">
+        <div class="password-wrapper">
+          <input type="password" id="set-adminpass" placeholder="Leave empty for open local access">
+          <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('#set-adminpass', this)" title="Show/Hide Password">👁️</button>
+        </div>
         <span class="hint">Protects the <code>/admin/*</code> API endpoints. Saved securely in your browser session.</span>
       </div>
 
       <div class="form-row">
         <div class="form-group" style="flex:1;">
           <label>Port</label>
-          <input type="number" id="set-port" placeholder="8787">
+          <input type="number" id="set-port" placeholder="8787" min="1" max="65535">
         </div>
         <div class="form-group" style="flex:1;">
           <label>Bind Host</label>
@@ -1168,14 +1299,20 @@ print(resp.choices[0].message.content)</pre>
       </div>
 
       <div class="form-row" style="margin-bottom:14px;">
-        <input type="password" id="backup-pass" placeholder="Passphrase to encrypt backup (optional)" style="width:280px;">
+        <div class="password-wrapper" style="width:280px;">
+          <input type="password" id="backup-pass" placeholder="Passphrase to encrypt backup (optional)">
+          <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('#backup-pass', this)" title="Show/Hide Passphrase">👁️</button>
+        </div>
         <button class="primary" id="btn-backup-download">⭳ Download Backup JSON</button>
       </div>
 
       <div class="form-row">
         <input type="file" id="restore-file-input" accept=".json,application/json" style="display:none;">
         <button class="ghost" id="btn-restore-browse">⭱ Select Backup File to Restore…</button>
-        <input type="password" id="restore-pass-input" placeholder="Passphrase (if backup was encrypted)" style="width:280px;">
+        <div class="password-wrapper" style="width:280px;">
+          <input type="password" id="restore-pass-input" placeholder="Passphrase (if backup was encrypted)">
+          <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('#restore-pass-input', this)" title="Show/Hide Passphrase">👁️</button>
+        </div>
       </div>
       <div id="restore-result-box" style="margin-top:12px;"></div>
     </div>
@@ -1183,25 +1320,25 @@ print(resp.choices[0].message.content)</pre>
 </main>
 
 <!-- MOBILE BOTTOM NAVIGATION -->
-<nav class="mobile-bottom-nav">
+<nav class="mobile-bottom-nav" role="tablist" aria-label="Mobile Navigation">
   <div class="nav-grid">
-    <button data-tab="accounts" class="active">
+    <button data-tab="accounts" class="active" role="tab" aria-selected="true" aria-controls="tab-accounts">
       <span class="nav-icon">📊</span>
       <span>Overview</span>
     </button>
-    <button data-tab="login">
+    <button data-tab="login" role="tab" aria-selected="false" aria-controls="tab-login">
       <span class="nav-icon">⚡</span>
       <span>Add</span>
     </button>
-    <button data-tab="models">
+    <button data-tab="models" role="tab" aria-selected="false" aria-controls="tab-models">
       <span class="nav-icon">🤖</span>
       <span>Models</span>
     </button>
-    <button data-tab="keys">
+    <button data-tab="keys" role="tab" aria-selected="false" aria-controls="tab-keys">
       <span class="nav-icon">🔑</span>
       <span>Keys</span>
     </button>
-    <button data-tab="settings">
+    <button data-tab="settings" role="tab" aria-selected="false" aria-controls="tab-settings">
       <span class="nav-icon">⚙️</span>
       <span>Settings</span>
     </button>
@@ -1215,11 +1352,27 @@ print(resp.choices[0].message.content)</pre>
     <p class="metric-sub" style="margin-bottom:16px;">This gateway requires an admin password to access protected management endpoints.</p>
     <div class="form-group">
       <label>Admin Password:</label>
-      <input type="password" id="admin-modal-pass" placeholder="Enter admin password">
+      <div class="password-wrapper">
+        <input type="password" id="admin-modal-pass" placeholder="Enter admin password">
+        <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('#admin-modal-pass', this)" title="Show/Hide Password">👁️</button>
+      </div>
     </div>
     <div class="form-row" style="justify-content:flex-end; gap:8px;">
       <button class="ghost" id="btn-admin-cancel">Cancel</button>
       <button class="primary" id="btn-admin-submit">Authenticate</button>
+    </div>
+  </div>
+</div>
+
+<!-- IN-APP CONFIRMATION MODAL -->
+<div id="confirm-modal" class="modal-backdrop">
+  <div class="modal-card">
+    <div class="card-title" id="confirm-modal-title" style="margin-bottom:8px;">⚠️ Confirm Action</div>
+    <p id="confirm-modal-msg" style="margin-bottom:8px; font-weight:500; color:var(--text);"></p>
+    <p id="confirm-modal-details" style="font-size:12px; color:var(--muted); margin-bottom:18px; line-height:1.5;"></p>
+    <div class="form-row" style="justify-content:flex-end; gap:8px;">
+      <button class="ghost" id="btn-confirm-cancel">Cancel</button>
+      <button class="danger" id="btn-confirm-ok">Confirm</button>
     </div>
   </div>
 </div>
@@ -1293,10 +1446,12 @@ async function api(method, path, body) {
   return data;
 }
 
-// Navigation Tabs (Syncs Desktop & Mobile Nav)
+// Navigation Tabs (Syncs Desktop & Mobile Nav + ARIA)
 function switchTab(tabId) {
   document.querySelectorAll('.desktop-nav button, .mobile-bottom-nav button').forEach((b) => {
-    b.classList.toggle('active', b.dataset.tab === tabId);
+    const isActive = b.dataset.tab === tabId;
+    b.classList.toggle('active', isActive);
+    b.setAttribute('aria-selected', isActive ? 'true' : 'false');
   });
   document.querySelectorAll('main section').forEach((s) => (s.style.display = 'none'));
   const target = $('#tab-' + tabId);
@@ -1308,16 +1463,176 @@ document.querySelectorAll('.desktop-nav button, .mobile-bottom-nav button').forE
   btn.onclick = () => switchTab(btn.dataset.tab);
 });
 
+// In-App Confirmation Modal System
+let pendingConfirmResolve = null;
+function showConfirm({ title, message, details, confirmText = 'Confirm', danger = true }) {
+  return new Promise((resolve) => {
+    pendingConfirmResolve = resolve;
+    $('#confirm-modal-title').textContent = title || '⚠️ Confirm Action';
+    $('#confirm-modal-msg').textContent = message || 'Are you sure you want to proceed?';
+    $('#confirm-modal-details').textContent = details || '';
+    const okBtn = $('#btn-confirm-ok');
+    okBtn.textContent = confirmText;
+    okBtn.className = danger ? 'danger' : 'primary';
+    $('#confirm-modal').classList.add('show');
+    $('#btn-confirm-cancel').focus();
+  });
+}
+
+function closeConfirm(result = false) {
+  $('#confirm-modal').classList.remove('show');
+  if (pendingConfirmResolve) {
+    const res = pendingConfirmResolve;
+    pendingConfirmResolve = null;
+    res(result);
+  }
+}
+
+$('#btn-confirm-cancel').onclick = () => closeConfirm(false);
+$('#btn-confirm-ok').onclick = () => closeConfirm(true);
+$('#confirm-modal').onclick = (e) => {
+  if (e.target === $('#confirm-modal')) closeConfirm(false);
+};
+
+// Password Visibility Toggle
+function togglePasswordVisibility(inputSel, btn) {
+  const input = $(inputSel);
+  if (!input) return;
+  const isPass = input.type === 'password';
+  input.type = isPass ? 'text' : 'password';
+  btn.textContent = isPass ? '🔒' : '👁️';
+  btn.title = isPass ? 'Hide password' : 'Show password';
+}
+
 // Snippet Tab Switcher
 document.querySelectorAll('.snippet-nav button').forEach((btn) => {
   btn.onclick = () => {
-    document.querySelectorAll('.snippet-nav button').forEach((b) => b.classList.remove('active'));
+    document.querySelectorAll('.snippet-nav button').forEach((b) => {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected', 'false');
+    });
     btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
     const type = btn.dataset.snippet;
     document.querySelectorAll('.snippet-view').forEach((view) => (view.style.display = 'none'));
     const target = $('#snip-' + type);
     if (target) target.style.display = 'block';
   };
+});
+
+// Dynamic Snippet Hydration
+let latestCreatedSecretKey = '';
+
+function renderSnippets() {
+  const select = $('#snippet-key-select');
+  const statusBadge = $('#snippet-hydration-status');
+  const keys = state?.config?.keys || [];
+  const activeKeys = keys.filter((k) => !k.revoked);
+
+  const prevVal = select?.value;
+  
+  if (select) {
+    let optionsHtml = '';
+    if (latestCreatedSecretKey) {
+      optionsHtml += `<option value="${esc(latestCreatedSecretKey)}">✨ New Key (${esc(latestCreatedSecretKey.slice(0, 10))}...)</option>`;
+    }
+    if (activeKeys.length > 0) {
+      optionsHtml += activeKeys.map((k) => `<option value="${esc(k.keyPreview)}">${esc(k.name || 'key')} (${esc(k.keyPreview)})</option>`).join('');
+    }
+    optionsHtml += `<option value="sk-gw-your-api-key">Placeholder (sk-gw-your-api-key)</option>`;
+    select.innerHTML = optionsHtml;
+
+    if (prevVal && select.querySelector(`option[value="${CSS.escape(prevVal)}"]`)) {
+      select.value = prevVal;
+    }
+  }
+
+  const chosenKey = select?.value || latestCreatedSecretKey || activeKeys[0]?.keyPreview || 'sk-gw-your-api-key';
+  const isHydrated = chosenKey !== 'sk-gw-your-api-key';
+
+  if (statusBadge) {
+    statusBadge.textContent = isHydrated ? '✓ Auto-hydrated' : '⚠️ Placeholder Key';
+    statusBadge.className = isHydrated ? 'badge ok' : 'badge cooldown';
+  }
+
+  const port = state?.config?.port || 8787;
+  const baseUrl = state?.config?.publicBaseUrl ? state.config.publicBaseUrl.replace(/\/$/, '') : `http://127.0.0.1:${port}`;
+  const v1Url = `${baseUrl}/v1`;
+
+  // 1. Claude Code
+  const claudeCode = `export ANTHROPIC_BASE_URL="${baseUrl}"\nexport ANTHROPIC_API_KEY="${chosenKey}"\nexport ANTHROPIC_MODEL="kiro/claude-sonnet-4.5"`;
+  const codeClaude = $('#code-claude');
+  if (codeClaude) codeClaude.textContent = claudeCode;
+  const btnClaude = $('#btn-copy-claude');
+  if (btnClaude) btnClaude.onclick = () => copyText(claudeCode, btnClaude);
+
+  // 2. Cursor / Cline
+  const cursorCode = `Base URL : ${v1Url}\nAPI Key  : ${chosenKey}\nModel    : kiro/claude-sonnet-4.5  OR  agy/gemini-3.7-flash`;
+  const codeCursor = $('#code-cursor');
+  if (codeCursor) codeCursor.textContent = cursorCode;
+  const btnCursor = $('#btn-copy-cursor');
+  if (btnCursor) btnCursor.onclick = () => copyText(v1Url, btnCursor);
+
+  // 3. Roo Code
+  const rooCode = `Provider : OpenAI Compatible\nBase URL : ${v1Url}\nAPI Key  : ${chosenKey}\nModel ID : agy/gemini-3.7-flash`;
+  const codeRoo = $('#code-roo');
+  if (codeRoo) codeRoo.textContent = rooCode;
+  const btnRoo = $('#btn-copy-roo');
+  if (btnRoo) btnRoo.onclick = () => copyText(v1Url, btnRoo);
+
+  // 4. Python SDK
+  const pythonCode = `from openai import OpenAI\n\nclient = OpenAI(base_url="${v1Url}", api_key="${chosenKey}")\nresp = client.chat.completions.create(\n    model="kiro/claude-sonnet-4.5",\n    messages=[{"role": "user", "content": "Hello!"}],\n)\nprint(resp.choices[0].message.content)`;
+  const codePython = $('#code-python');
+  if (codePython) codePython.textContent = pythonCode;
+  const btnPython = $('#btn-copy-python');
+  if (btnPython) btnPython.onclick = () => copyText(pythonCode, btnPython);
+}
+
+// Global Keyboard Accelerators
+document.addEventListener('keydown', (e) => {
+  const activeEl = document.activeElement;
+  const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
+
+  if (e.key === 'Escape') {
+    if ($('#confirm-modal')?.classList.contains('show')) {
+      closeConfirm(false);
+      e.preventDefault();
+      return;
+    }
+    if ($('#admin-modal')?.classList.contains('show')) {
+      $('#btn-admin-cancel')?.click();
+      e.preventDefault();
+      return;
+    }
+    if (isInput) {
+      activeEl.blur();
+      e.preventDefault();
+      return;
+    }
+  }
+
+  if (isInput) return;
+
+  // Search shortcut: '/'
+  if (e.key === '/') {
+    e.preventDefault();
+    switchTab('models');
+    setTimeout(() => {
+      const search = $('#model-search');
+      if (search) {
+        search.focus();
+        search.select();
+      }
+    }, 50);
+    return;
+  }
+
+  // Tab navigation shortcuts: '1' - '5'
+  const tabKeys = { '1': 'accounts', '2': 'login', '3': 'models', '4': 'keys', '5': 'settings' };
+  if (tabKeys[e.key]) {
+    e.preventDefault();
+    switchTab(tabKeys[e.key]);
+  }
 });
 
 // State Refresher
@@ -1328,6 +1643,7 @@ async function refreshState() {
     renderAccounts();
     renderCatalog();
     renderKeys();
+    renderSnippets();
     renderSettings();
   } catch (err) {
     if (err.message !== 'unauthorized') notice('Failed to sync gateway state: ' + err.message, 'error');
@@ -1374,6 +1690,28 @@ function fmtReset(iso) {
   } catch {
     return '';
   }
+}
+
+function fmtDate(ts) {
+  if (!ts) return '—';
+  try {
+    const d = new Date(ts);
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return String(ts);
+  }
+}
+
+function fmtRelative(ts) {
+  if (!ts) return 'Never';
+  const diff = Date.now() - ts;
+  if (diff < 30_000) return 'Just now';
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }
 
 function renderOverview() {
@@ -1537,11 +1875,20 @@ function renderAccounts() {
   box.querySelectorAll('button[data-act]').forEach((btn) => {
     btn.onclick = async () => {
       const id = btn.dataset.id;
+      const acc = state.accounts?.find((a) => a.id === id);
+      const accLabel = acc?.email || acc?.label || acc?.provider || 'this account';
       try {
         if (btn.dataset.act === 'del') {
-          if (!confirm('Remove this account from the gateway?')) return;
+          const confirmed = await showConfirm({
+            title: '🗑 Remove Account',
+            message: `Remove account "${accLabel}" from the gateway pool?`,
+            details: 'Active agent workflows and streaming requests using this account will automatically failover to other healthy accounts in the pool.',
+            confirmText: 'Remove Account',
+            danger: true,
+          });
+          if (!confirmed) return;
           await api('DELETE', '/admin/api/accounts/' + id);
-          notice('Account removed.');
+          notice(`Account "${accLabel}" removed.`);
         } else if (btn.dataset.act === 'quota') {
           await api('POST', `/admin/api/accounts/${id}/quota`);
           notice('Quota refreshed.');
@@ -1671,27 +2018,103 @@ $('#btn-add-agy').onclick = async () => {
 function renderKeys() {
   if (!state) return;
   const box = $('#keys-list');
-  const count = state.config?.keyCount || 0;
-  if (!count) {
-    box.innerHTML = '<div class="empty-state">No API keys created yet. Create one above to authenticate your agents.</div>';
+  const keys = state.config?.keys || [];
+  const keyCountElem = $('#key-count');
+  if (keyCountElem) keyCountElem.textContent = keys.length;
+
+  if (!keys || keys.length === 0) {
+    box.innerHTML = '<div class="empty-state">No API keys created yet. Generate one above to authenticate your agents.</div>';
     return;
   }
-  box.innerHTML = `<div class="empty-state">${count} API key(s) active on this gateway. Full secret values are shown once upon creation.</div>`;
+
+  box.innerHTML = keys.map((k) => {
+    const isRevoked = k.revoked === true;
+    const isExpired = k.expiresAt && k.expiresAt <= Date.now();
+    const createdStr = fmtDate(k.createdAt);
+    const lastUsedStr = k.lastUsedAt ? fmtRelative(k.lastUsedAt) : 'Never';
+    const statusBadge = isRevoked
+      ? '<span class="badge expired">Revoked</span>'
+      : isExpired
+        ? '<span class="badge cooldown">Expired</span>'
+        : '<span class="badge ok">Active</span>';
+
+    return `
+      <div class="key-item ${isRevoked ? 'revoked' : ''}" data-key-id="${esc(k.id)}">
+        <div class="key-top">
+          <div class="key-identity">
+            <span class="key-name">${esc(k.name || 'key')}</span>
+            ${statusBadge}
+            <code class="key-code" title="Masked Key Preview">${esc(k.keyPreview || 'sk-gw-...')}</code>
+          </div>
+          <div class="key-actions">
+            <button class="ghost" onclick="copyText('${esc(k.keyPreview)}', this)" title="Copy Key Preview">📋 Copy Preview</button>
+            <button class="ghost" onclick="toggleRevokeKey('${esc(k.id)}', ${isRevoked})" title="${isRevoked ? 'Reactivate API Key' : 'Revoke API Key'}">
+              ${isRevoked ? '✓ Activate' : '🚫 Revoke'}
+            </button>
+            <button class="danger ghost" onclick="deleteKey('${esc(k.id)}', '${esc(k.name || 'key')}')" title="Permanently Delete API Key">
+              🗑 Delete
+            </button>
+          </div>
+        </div>
+        <div class="key-meta">
+          <span>📅 Created: ${createdStr}</span>
+          <span>•</span>
+          <span>⚡ Last used: ${lastUsedStr}</span>
+          <span>•</span>
+          <span>📊 ${k.requests || 0} request${k.requests === 1 ? '' : 's'}</span>
+          ${k.expiresAt ? `<span>•</span><span>⏳ Expires: ${fmtDate(k.expiresAt)}</span>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function toggleRevokeKey(id, isRevoked) {
+  try {
+    const action = isRevoked ? 'activate' : 'revoke';
+    await api('POST', `/admin/api/keys/${encodeURIComponent(id)}/${action}`);
+    notice(`API key ${isRevoked ? 'reactivated' : 'revoked'} successfully.`, 'success');
+    refreshState();
+  } catch (err) {
+    notice('Failed to update API key: ' + err.message, 'error');
+  }
+}
+
+async function deleteKey(id, name) {
+  const confirmed = await showConfirm({
+    title: '🗑 Delete API Key',
+    message: `Permanently delete API key "${name}"?`,
+    details: 'Any coding agents, CLI tools, or active workflows configured with this bearer key will immediately lose access to the gateway.',
+    confirmText: 'Delete Key',
+    danger: true,
+  });
+  if (!confirmed) return;
+  try {
+    await api('DELETE', `/admin/api/keys/${encodeURIComponent(id)}`);
+    notice(`API key "${name}" deleted.`, 'success');
+    refreshState();
+  } catch (err) {
+    notice('Failed to delete key: ' + err.message, 'error');
+  }
 }
 
 $('#btn-create-key').onclick = async () => {
   try {
     const name = $('#key-name-input').value.trim() || 'agent-key';
-    const { key } = await api('POST', '/admin/api/keys', { name });
+    const expiryDays = parseInt($('#key-expiry-select')?.value || '0', 10);
+    const expiresAt = expiryDays > 0 ? Date.now() + expiryDays * 24 * 3600_000 : undefined;
+    const res = await api('POST', '/admin/api/keys', { name, expiresAt });
+    latestCreatedSecretKey = res.key;
     $('#key-name-input').value = '';
     $('#new-key-banner').innerHTML = `
-      <div class="code-snippet" style="border-color:var(--green);">
-        <div style="font-size:12px; color:var(--green); font-weight:600; margin-bottom:6px;">✓ API Key Created — Copy it now:</div>
-        <pre>${esc(key)}</pre>
-        <button class="ghost copy-btn" onclick="copyText('${esc(key)}', this)">Copy</button>
+      <div class="code-snippet" style="border-color:var(--green); margin-bottom:16px;">
+        <div style="font-size:12px; color:var(--green); font-weight:600; margin-bottom:4px;">✓ New API Key Created — Copy it now:</div>
+        <div style="font-size:11px; color:var(--muted); margin-bottom:8px;">This key will not be shown again in full. It has also been auto-hydrated into your Quick Integration Snippets below.</div>
+        <pre>${esc(res.key)}</pre>
+        <button class="ghost copy-btn" onclick="copyText('${esc(res.key)}', this)">Copy Full Key</button>
       </div>
     `;
-    notice('API key created successfully.', 'success');
+    notice('API key created and hydrated into code snippets.', 'success');
     refreshState();
   } catch (err) {
     notice('Key creation failed: ' + err.message, 'error');
@@ -1710,11 +2133,25 @@ function renderSettings() {
 
 $('#btn-save-settings').onclick = async () => {
   try {
+    const portVal = parseInt($('#set-port').value, 10);
+    const hostVal = $('#set-host').value.trim();
+
+    if (isNaN(portVal) || portVal < 1 || portVal > 65535) {
+      notice('Port must be a valid number between 1 and 65535.', 'error');
+      $('#set-port').focus();
+      return;
+    }
+    if (!hostVal) {
+      notice('Bind Host cannot be empty (e.g. 0.0.0.0 or 127.0.0.1).', 'error');
+      $('#set-host').focus();
+      return;
+    }
+
     const body = {
       publicBaseUrl: $('#set-baseurl').value.trim() || '',
       adminPassword: $('#set-adminpass').value,
-      port: parseInt($('#set-port').value, 10),
-      host: $('#set-host').value.trim(),
+      port: portVal,
+      host: hostVal,
     };
     const res = await api('POST', '/admin/api/settings', body);
     $('#settings-status').textContent = res.restartNeeded ? 'Settings saved. Restart gateway to apply host/port changes.' : 'Settings saved.';

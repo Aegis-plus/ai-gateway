@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import type { Store } from './store.ts';
 import { MODEL_CATALOG, resolveModel } from './models.ts';
-import { sanitizeAccount, ProviderError, type Account } from './types.ts';
+import { sanitizeAccount, sanitizeApiKey, ProviderError, type Account } from './types.ts';
 import { accountsFor, startStreamWithRotation } from './pool.ts';
 import { refreshAccountQuota, refreshAllQuotas } from './quota.ts';
 import { parseOpenAIRequest, RequestFormatError, buildOpenAICompletion, streamOpenAI, openaiCompletionId } from './openai.ts';
@@ -100,7 +100,13 @@ export function createGatewayServer(store: Store): ReturnType<typeof createServe
 
   function apiAuthorized(req: IncomingMessage): boolean {
     const key = apiKeyFrom(req);
-    return !!key && store.config.apiKeys.some((k) => k.key === key);
+    if (!key) return false;
+    const match = store.config.apiKeys.find((k) => k.key === key);
+    if (!match) return false;
+    if (match.revoked === true) return false;
+    if (match.expiresAt && match.expiresAt <= Date.now()) return false;
+    store.recordApiKeyUsage(key);
+    return true;
   }
 
   async function handleApi(req: IncomingMessage, res: ServerResponse, method: string, path: string): Promise<void> {
@@ -338,23 +344,55 @@ export function createGatewayServer(store: Store): ReturnType<typeof createServe
           publicBaseUrl: store.config.publicBaseUrl ?? null,
           adminPasswordSet: !!store.config.adminPassword,
           keyCount: store.config.apiKeys.length,
+          keys: store.getSanitizedApiKeys(),
         },
       });
+      return;
+    }
+    if (method === 'GET' && path === '/admin/api/keys') {
+      json(res, 200, { keys: store.getSanitizedApiKeys() });
       return;
     }
     if (method === 'POST' && path === '/admin/api/keys') {
       const body = await readBody(req);
       const name = typeof body?.name === 'string' && body.name.trim() ? body.name.trim() : 'key';
-      const key = `sk-gw-${randomUUID().replace(/-/g, '')}${randomUUID().replace(/-/g, '').slice(0, 16)}`;
-      store.config.apiKeys.push({ key, name, createdAt: Date.now() });
-      store.saveConfig();
-      json(res, 200, { key, name });
+      const expiresAt = typeof body?.expiresAt === 'number' && body.expiresAt > Date.now() ? body.expiresAt : undefined;
+      const { apiKey, key } = store.createApiKey(name, expiresAt);
+      json(res, 200, {
+        ...sanitizeApiKey(apiKey),
+        key,
+      });
+      return;
+    }
+    const keyActionMatch = /^\/admin\/api\/keys\/([\w-]+)\/(revoke|activate|unrevoke|toggle)$/.exec(path);
+    if (method === 'POST' && keyActionMatch) {
+      const idOrKey = decodeURIComponent(keyActionMatch[1]!);
+      const action = keyActionMatch[2]!;
+      const body = await readBody(req);
+      let setRevoked: boolean;
+      if (action === 'activate' || action === 'unrevoke') {
+        setRevoked = false;
+      } else if (action === 'toggle') {
+        const existing = store.config.apiKeys.find((k) => k.id === idOrKey || k.key === idOrKey);
+        setRevoked = existing ? !existing.revoked : true;
+      } else {
+        setRevoked = typeof body?.revoked === 'boolean' ? body.revoked : true;
+      }
+      const updated = store.revokeApiKey(idOrKey, setRevoked);
+      if (!updated) {
+        json(res, 404, { error: 'Unknown API key' });
+        return;
+      }
+      json(res, 200, { ok: true, key: sanitizeApiKey(updated) });
       return;
     }
     if (method === 'DELETE' && path.startsWith('/admin/api/keys/')) {
-      const key = decodeURIComponent(path.slice('/admin/api/keys/'.length));
-      store.config.apiKeys = store.config.apiKeys.filter((k) => k.key !== key);
-      store.saveConfig();
+      const idOrKey = decodeURIComponent(path.slice('/admin/api/keys/'.length));
+      const removed = store.deleteApiKey(idOrKey);
+      if (!removed) {
+        json(res, 404, { error: 'Unknown API key' });
+        return;
+      }
       json(res, 200, { ok: true });
       return;
     }

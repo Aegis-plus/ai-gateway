@@ -3,7 +3,9 @@
 
 import { mkdirSync, readFileSync, renameSync, writeFileSync, chmodSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
-import type { Account, Config } from './types.ts';
+import { randomUUID } from 'node:crypto';
+import type { Account, Config, ApiKey, SanitizedApiKey } from './types.ts';
+import { sanitizeApiKey } from './types.ts';
 
 export interface GatewayState {
   config: Config;
@@ -31,6 +33,21 @@ export class Store {
     this.config = this.loadJson(this.configPath, DEFAULT_CONFIG);
     // Merge defaults for fields added in newer versions.
     this.config = { ...DEFAULT_CONFIG, ...this.config };
+    // Normalize existing API keys (ensure id, requests, revoked)
+    if (Array.isArray(this.config.apiKeys)) {
+      this.config.apiKeys = this.config.apiKeys.map((k) => ({
+        id: k.id || `key_${randomUUID().replace(/-/g, '').slice(0, 12)}`,
+        key: k.key,
+        name: k.name || 'key',
+        createdAt: k.createdAt || Date.now(),
+        lastUsedAt: k.lastUsedAt,
+        requests: k.requests ?? 0,
+        revoked: k.revoked === true,
+        expiresAt: k.expiresAt,
+      }));
+    } else {
+      this.config.apiKeys = [];
+    }
     this.accounts = this.loadJson<Account[]>(this.accountsPath, []);
     // Stagger periodic saves so token refreshes don't write on every tick.
     this.saveTimer = setInterval(() => this.flush(), 5_000);
@@ -100,5 +117,62 @@ export class Store {
 
   getAccount(id: string): Account | undefined {
     return this.accounts.find((a) => a.id === id);
+  }
+
+  // ---------- API Key Management ----------
+
+  getApiKeys(): ApiKey[] {
+    return this.config.apiKeys;
+  }
+
+  getSanitizedApiKeys(): SanitizedApiKey[] {
+    return this.config.apiKeys.map(sanitizeApiKey);
+  }
+
+  createApiKey(name: string, expiresAt?: number): { apiKey: ApiKey; key: string } {
+    const id = `key_${randomUUID().replace(/-/g, '').slice(0, 12)}`;
+    const secretPart = `${randomUUID().replace(/-/g, '')}${randomUUID().replace(/-/g, '').slice(0, 16)}`;
+    const key = `sk-gw-${secretPart}`;
+    const apiKey: ApiKey = {
+      id,
+      key,
+      name: name.trim() || 'key',
+      createdAt: Date.now(),
+      requests: 0,
+      revoked: false,
+      ...(expiresAt ? { expiresAt } : {}),
+    };
+    this.config.apiKeys.push(apiKey);
+    this.saveConfig();
+    return { apiKey, key };
+  }
+
+  revokeApiKey(idOrKey: string, revoked = true): ApiKey | undefined {
+    const found = this.config.apiKeys.find((k) => k.id === idOrKey || k.key === idOrKey);
+    if (found) {
+      found.revoked = revoked;
+      this.saveConfig();
+      return found;
+    }
+    return undefined;
+  }
+
+  deleteApiKey(idOrKey: string): boolean {
+    const before = this.config.apiKeys.length;
+    this.config.apiKeys = this.config.apiKeys.filter((k) => k.id !== idOrKey && k.key !== idOrKey);
+    const removed = this.config.apiKeys.length < before;
+    if (removed) {
+      this.saveConfig();
+    }
+    return removed;
+  }
+
+  recordApiKeyUsage(keyStr: string): void {
+    const found = this.config.apiKeys.find((k) => k.key === keyStr);
+    if (found) {
+      found.requests = (found.requests ?? 0) + 1;
+      found.lastUsedAt = Date.now();
+      this.saveConfig();
+    }
   }
 }

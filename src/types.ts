@@ -134,9 +134,42 @@ export interface Account {
 }
 
 export interface ApiKey {
-  key: string; // sk-gw-...
+  id: string; // unique key identifier, e.g. "key_..."
+  key: string; // secret key, e.g. "sk-gw-..."
   name: string;
   createdAt: number;
+  lastUsedAt?: number;
+  requests?: number;
+  revoked?: boolean;
+  expiresAt?: number;
+}
+
+export interface SanitizedApiKey {
+  id: string;
+  name: string;
+  keyPreview: string; // masked key preview e.g. "sk-gw-1234...5678"
+  createdAt: number;
+  lastUsedAt?: number;
+  requests: number;
+  revoked: boolean;
+  expiresAt?: number;
+}
+
+export function sanitizeApiKey(k: ApiKey): SanitizedApiKey {
+  const raw = k.key || '';
+  const prefix = raw.slice(0, 10);
+  const suffix = raw.length > 14 ? raw.slice(-4) : '';
+  const keyPreview = suffix ? `${prefix}...${suffix}` : prefix ? `${prefix}...` : 'sk-gw-...';
+  return {
+    id: k.id || k.key,
+    name: k.name || 'key',
+    keyPreview,
+    createdAt: k.createdAt || Date.now(),
+    lastUsedAt: k.lastUsedAt,
+    requests: k.requests ?? 0,
+    revoked: k.revoked === true,
+    expiresAt: k.expiresAt,
+  };
 }
 
 export interface Config {
