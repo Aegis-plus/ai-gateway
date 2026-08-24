@@ -1926,16 +1926,21 @@ function renderCatalog() {
   for (const m of filtered) {
     const card = document.createElement('div');
     card.className = 'model-card';
+    const ctx = m.contextLength ? `${Math.round(m.contextLength / 1000)}k ctx` : '';
+    const thinkingBadge = m.thinking ? `<span class="badge" style="background:rgba(168,85,247,0.15);color:#c084fc;border:1px solid rgba(168,85,247,0.3);">🧠 Thinking</span>` : '';
     card.innerHTML = `
       <div>
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
           <span class="model-id">${esc(m.id)}</span>
-          <span class="badge ${m.provider}">${m.provider}</span>
+          <div style="display:flex; gap:4px;">
+            ${thinkingBadge}
+            <span class="badge ${m.provider}">${m.provider === 'antigravity' ? 'Antigravity' : 'Kiro'}</span>
+          </div>
         </div>
-        <div class="model-desc">${esc(m.description || m.id)}</div>
+        <div class="model-desc">${esc(m.displayName || m.description || m.id)}</div>
       </div>
       <div class="model-meta">
-        <span>Upstream: <code>${esc(m.upstream)}</code></span>
+        <span>Upstream: <code>${esc(m.upstream)}</code> ${ctx ? `· ${ctx}` : ''}</span>
         <button class="ghost" style="padding:4px 10px; font-size:11px; min-height:28px;" onclick="event.stopPropagation(); copyText('${esc(m.id)}', this)">Copy ID</button>
       </div>
     `;
