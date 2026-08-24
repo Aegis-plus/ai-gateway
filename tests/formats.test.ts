@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { parseOpenAIRequest, buildOpenAICompletion } from '../src/openai.ts';
 import { parseAnthropicRequest, buildAnthropicMessage } from '../src/anthropic.ts';
 import { EventAggregator } from '../src/aggregate.ts';
-import { cleanGeminiSchema, toGeminiContents } from '../src/providers/antigravity.ts';
+import { cleanGeminiSchema, toGeminiContents, toGeminiTools } from '../src/providers/antigravity.ts';
 import { resolveModel } from '../src/models.ts';
 import type { ProviderEvent } from '../src/types.ts';
 
@@ -282,4 +282,34 @@ describe('toGeminiContents', () => {
       response: { status: 'success' },
     });
   });
+
+  it('handles empty tools by returning empty object without toolConfig', () => {
+    const emptyTools = toGeminiTools([]);
+    expect(emptyTools.tools).toBeUndefined();
+    expect(emptyTools.toolConfig).toBeUndefined();
+
+    const noTools = toGeminiTools(undefined);
+    expect(noTools.tools).toBeUndefined();
+    expect(noTools.toolConfig).toBeUndefined();
+  });
+
+  it('produces valid tool schema and VALIDATED mode when tools are present', () => {
+    const tools = toGeminiTools([
+      {
+        name: 'get_weather',
+        description: 'Get weather for location',
+        parameters: {
+          type: 'object',
+          properties: {
+            city: { type: 'string', description: 'City name' },
+          },
+          required: ['city'],
+        },
+      },
+    ]);
+    expect(tools.tools).toBeDefined();
+    expect(tools.tools).toHaveLength(1);
+    expect(tools.toolConfig).toEqual({ functionCallingConfig: { mode: 'VALIDATED' } });
+  });
 });
+

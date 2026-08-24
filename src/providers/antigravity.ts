@@ -67,27 +67,28 @@ export async function* streamAntigravity(
   const sessionId = generateStableSessionId(req.messages);
 
   const generationConfig: Record<string, unknown> = {
-    topK: 40,
+    ...(isClaude ? {} : { topK: 40 }),
     ...(req.temperature !== undefined ? { temperature: req.temperature } : {}),
     ...(req.topP !== undefined ? { topP: req.topP } : {}),
   };
   // CLIProxyAPI: only include maxOutputTokens for Claude models on Cloud Code Pa
   if (isClaude && req.maxTokens !== undefined) {
-    generationConfig.maxOutputTokens = req.maxTokens;
+    generationConfig.maxOutputTokens = Math.min(req.maxTokens, 64000);
   }
 
   const toolsData = toGeminiTools(req.tools);
-  const toolConfig = isClaude
-    ? { functionCallingConfig: { mode: 'VALIDATED' } }
-    : toolsData.toolConfig;
+  const hasTools = Boolean(toolsData.tools && toolsData.tools.length > 0);
+  const toolConfig = hasTools
+    ? (isClaude ? { functionCallingConfig: { mode: 'VALIDATED' } } : toolsData.toolConfig)
+    : undefined;
 
   const requestPayload: Record<string, unknown> = {
     contents: toGeminiContents(req.messages),
     sessionId,
-    ...(req.system ? { systemInstruction: { parts: [{ text: req.system }] } } : {}),
+    ...(req.system ? { systemInstruction: { role: 'user', parts: [{ text: req.system }] } } : {}),
     generationConfig,
     ...(toolConfig ? { toolConfig } : {}),
-    ...(toolsData.tools ? { tools: toolsData.tools } : {}),
+    ...(hasTools ? { tools: toolsData.tools } : {}),
   };
 
   const envelope: Record<string, unknown> = {
@@ -107,7 +108,11 @@ export async function* streamAntigravity(
 
   // Build model fallback chain for 404 recovery
   const candidateModels = [upstreamModel];
-  if (upstreamModel.startsWith('gemini-3.7')) {
+  if (upstreamModel.includes('claude-sonnet')) {
+    candidateModels.push('claude-sonnet-4-6', 'claude-opus-4-6-thinking');
+  } else if (upstreamModel.includes('claude-opus')) {
+    candidateModels.push('claude-opus-4-6-thinking', 'claude-sonnet-4-6');
+  } else if (upstreamModel.startsWith('gemini-3.7')) {
     candidateModels.push('gemini-3.7-flash-tiered', 'gemini-3.6-flash-high', 'gemini-3-flash');
   } else if (upstreamModel.startsWith('gemini-3.6')) {
     candidateModels.push('gemini-3.6-flash-high', 'gemini-3-flash');
