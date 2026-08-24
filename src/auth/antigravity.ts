@@ -29,10 +29,10 @@ const SCOPES = [
   'https://www.googleapis.com/auth/experimentsandconfigs',
 ].join(' ');
 
-// Cloud Code upstreams, tried in order (cloudcode-pa is Google's primary production Anycast endpoint).
+// Cloud Code upstreams, tried in order (daily-cloudcode-pa is the primary endpoint).
 export const ANTIGRAVITY_BASES = [
-  'https://cloudcode-pa.googleapis.com',
   'https://daily-cloudcode-pa.googleapis.com',
+  'https://cloudcode-pa.googleapis.com',
   'https://daily-cloudcode-pa.sandbox.googleapis.com',
 ];
 
