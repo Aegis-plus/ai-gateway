@@ -82,10 +82,12 @@ export async function* streamAntigravity(
     ? (isClaude ? { functionCallingConfig: { mode: 'VALIDATED' } } : toolsData.toolConfig)
     : undefined;
 
+  const systemText = req.system ? req.system.trim() : '';
+
   const requestPayload: Record<string, unknown> = {
     contents: toGeminiContents(req.messages),
     sessionId,
-    ...(req.system ? { systemInstruction: { role: 'user', parts: [{ text: req.system }] } } : {}),
+    ...(systemText ? { systemInstruction: { role: 'user', parts: [{ text: systemText }] } } : {}),
     generationConfig,
     ...(toolConfig ? { toolConfig } : {}),
     ...(hasTools ? { tools: toolsData.tools } : {}),
@@ -309,7 +311,10 @@ export function toGeminiContents(messages: CoreRequest['messages']): { role: 'us
     const parts: GeminiPart[] = [];
     for (const block of msg.content) {
       if (block.type === 'text') {
-        parts.push({ text: block.text });
+        const trimmed = block.text ? block.text.trim() : '';
+        if (trimmed) {
+          parts.push({ text: block.text });
+        }
       } else if (block.type === 'image') {
         parts.push({ inlineData: { mimeType: block.mediaType, data: block.base64 } });
       } else if (block.type === 'tool_use') {
@@ -333,8 +338,13 @@ export function toGeminiContents(messages: CoreRequest['messages']): { role: 'us
         });
       }
     }
-    if (parts.length === 0) parts.push({ text: '' });
-    contents.push({ role: msg.role === 'assistant' ? 'model' : 'user', parts });
+    if (parts.length > 0) {
+      contents.push({ role: msg.role === 'assistant' ? 'model' : 'user', parts });
+    }
+  }
+
+  if (contents.length === 0) {
+    contents.push({ role: 'user', parts: [{ text: 'Hello' }] });
   }
   return contents;
 }
