@@ -16,26 +16,19 @@ export function accountsFor(store: Store, provider: ProviderId): Account[] {
 }
 
 function isUsable(a: Account): boolean {
-  if (a.status.state === 'expired') return false;
-  if (a.status.state === 'cooldown' && (a.status.cooldownUntil ?? 0) > Date.now()) return false;
-  return true;
+  return a.status.state !== 'expired';
 }
 
-/** Ordered candidate list: healthy accounts first (starting at the round-robin cursor). */
+/** Ordered candidate list: usable accounts (starting at the round-robin cursor). */
 function candidates(store: Store, provider: ProviderId): Account[] {
   const all = accountsFor(store, provider);
-  const healthy = all.filter(isUsable);
-  if (healthy.length > 0) {
-    const start = rrIndex[provider] % healthy.length;
-    rrIndex[provider] = (rrIndex[provider] + 1) % healthy.length;
-    return [...healthy.slice(start), ...healthy.slice(0, start)];
+  const usable = all.filter(isUsable);
+  if (usable.length > 0) {
+    const start = rrIndex[provider] % usable.length;
+    rrIndex[provider] = (rrIndex[provider] + 1) % usable.length;
+    return [...usable.slice(start), ...usable.slice(0, start)];
   }
-  // Everything is cooling down — surface the account that recovers soonest
-  // so requests still have a chance instead of failing outright.
-  return [...all]
-    .filter((a) => a.status.state !== 'expired')
-    .sort((a, b) => (a.status.cooldownUntil ?? 0) - (b.status.cooldownUntil ?? 0))
-    .slice(0, 1);
+  return [];
 }
 
 function markSuccess(account: Account, store: Store) {
@@ -47,27 +40,10 @@ function markSuccess(account: Account, store: Store) {
 
 export function applyErrorState(account: Account, err: PE, store: Store): void {
   account.stats.errors += 1;
-  switch (err.kind) {
-    case 'invalid_grant':
-      account.status = { state: 'expired', lastError: err.message };
-      break;
-    case 'quota': {
-      let until = err.cooldownMs ? Date.now() + err.cooldownMs : Date.now() + 3600_000;
-      const resetS = account.quota?.kiro?.nextDateReset;
-      if (resetS && resetS * 1000 > Date.now() && resetS * 1000 < Date.now() + 45 * 24 * 3600_000) {
-        until = resetS * 1000;
-      }
-      account.status = { state: 'cooldown', cooldownUntil: until, lastError: err.message };
-      break;
-    }
-    case 'rate_limit':
-      account.status = { state: 'cooldown', cooldownUntil: Date.now() + (err.cooldownMs ?? 60_000), lastError: err.message };
-      break;
-    case 'auth':
-      account.status = { state: 'cooldown', cooldownUntil: Date.now() + 60_000, lastError: err.message };
-      break;
-    default:
-      account.status = { state: 'cooldown', cooldownUntil: Date.now() + 30_000, lastError: err.message };
+  if (err.kind === 'invalid_grant') {
+    account.status = { state: 'expired', lastError: err.message };
+  } else {
+    account.status = { state: 'ok', lastError: err.message };
   }
   store.markDirty();
 }
