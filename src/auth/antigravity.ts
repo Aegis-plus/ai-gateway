@@ -240,16 +240,127 @@ export async function retrieveQuotaSummary(accessToken: string): Promise<QuotaSu
   return callInternal('/v1internal:retrieveUserQuotaSummary', accessToken, {});
 }
 
-export interface AvailableModels {
-  models?: {
-    name?: string;
-    displayName?: string;
-    quotaInfo?: { remainingFraction?: number; resetTime?: string };
-  }[];
+import type { ModelEntry, ModelThinking } from '../models.ts';
+
+export interface AntigravityRawModel {
+  displayName?: string;
+  name?: string;
+  description?: string;
+  maxTokens?: number;
+  maxOutputTokens?: number;
+  supportedGenerationMethods?: string[];
+  thinking?: ModelThinking;
 }
 
-export async function fetchAvailableModels(accessToken: string, projectId?: string): Promise<AvailableModels> {
+export interface AvailableModelsResponse {
+  models?: Record<string, AntigravityRawModel> | AntigravityRawModel[];
+  webSearchModelIds?: string[];
+}
+
+export async function fetchAvailableModels(accessToken: string, projectId?: string): Promise<AvailableModelsResponse> {
   return callInternal('/v1internal:fetchAvailableModels', accessToken, { project: projectId ?? '' });
+}
+
+// Models that are internal, experimental, or autocomplete tabs that shouldn't be exposed as chat models
+const EXCLUDED_ANTIGRAVITY_MODELS = new Set([
+  'chat_20706',
+  'chat_23310',
+  'tab_flash_lite_preview',
+  'tab_jump_flash_lite_preview',
+  'gemini-2.5-flash-thinking',
+  'gemini-2.5-pro',
+]);
+
+/**
+ * Fetches available models from Google Antigravity (Cloud Code Pa) and converts them into ModelEntry items.
+ */
+export async function fetchAntigravityModelEntries(accessToken: string, projectId?: string): Promise<ModelEntry[]> {
+  try {
+    const raw = await fetchAvailableModels(accessToken, projectId);
+    if (!raw) return [];
+
+    const webSearchSet = new Set((raw.webSearchModelIds ?? []).map((id) => id.toLowerCase().trim()));
+    const entries: ModelEntry[] = [];
+
+    // Upstream returns models as a key-value object map or array
+    if (raw.models && typeof raw.models === 'object' && !Array.isArray(raw.models)) {
+      for (const [key, data] of Object.entries(raw.models)) {
+        const modelId = key.trim();
+        if (!modelId || EXCLUDED_ANTIGRAVITY_MODELS.has(modelId) || /^(chat_\d+|tab_)/i.test(modelId)) {
+          continue;
+        }
+        const displayName = data.displayName || modelId;
+        const isWebSearch = webSearchSet.has(modelId.toLowerCase());
+        const thinking = resolveAntigravityThinking(modelId, data.thinking);
+
+        entries.push({
+          id: `agy/${modelId}`,
+          provider: 'antigravity',
+          upstream: modelId,
+          displayName,
+          description: `Antigravity · ${displayName}`,
+          contextLength: data.maxTokens,
+          maxCompletionTokens: data.maxOutputTokens,
+          supportsWebSearch: isWebSearch,
+          thinking,
+          inputModalities: ['text', 'image', 'audio', 'video'],
+          outputModalities: ['text'],
+          isDynamic: true,
+        });
+      }
+    } else if (Array.isArray(raw.models)) {
+      for (const m of raw.models) {
+        const modelId = (m.name || m.displayName || '').trim();
+        if (!modelId || EXCLUDED_ANTIGRAVITY_MODELS.has(modelId) || /^(chat_\d+|tab_)/i.test(modelId)) {
+          continue;
+        }
+        const displayName = m.displayName || modelId;
+        const isWebSearch = webSearchSet.has(modelId.toLowerCase());
+        const thinking = resolveAntigravityThinking(modelId, m.thinking);
+
+        entries.push({
+          id: `agy/${modelId}`,
+          provider: 'antigravity',
+          upstream: modelId,
+          displayName,
+          description: `Antigravity · ${displayName}`,
+          contextLength: m.maxTokens,
+          maxCompletionTokens: m.maxOutputTokens,
+          supportsWebSearch: isWebSearch,
+          thinking,
+          inputModalities: ['text', 'image', 'audio', 'video'],
+          outputModalities: ['text'],
+          isDynamic: true,
+        });
+      }
+    }
+
+    return entries;
+  } catch (err) {
+    console.warn('[antigravity] failed to fetch available models from upstream:', err instanceof Error ? err.message : String(err));
+    return [];
+  }
+}
+
+function resolveAntigravityThinking(modelId: string, upstreamThinking?: ModelThinking): ModelThinking | undefined {
+  if (upstreamThinking) return upstreamThinking;
+  const lower = modelId.toLowerCase();
+  if (lower.includes('flash-lite')) {
+    return { min: 1, max: 65535, zeroAllowed: true, dynamicAllowed: true, levels: ['minimal', 'low', 'medium', 'high'] };
+  }
+  if (lower.includes('gemini-3.7') || lower.includes('gemini-3.6')) {
+    return { min: 1, max: 65535, dynamicAllowed: true, levels: ['minimal', 'low', 'medium', 'high'] };
+  }
+  if (lower.includes('gemini-3.5') || lower.includes('gemini-3-flash')) {
+    return { min: 128, max: 32768, dynamicAllowed: true, levels: ['minimal', 'low', 'medium', 'high'] };
+  }
+  if (lower.includes('pro')) {
+    return { min: 1, max: 65535, dynamicAllowed: true, levels: ['low', 'medium', 'high'] };
+  }
+  if (lower.includes('claude')) {
+    return { min: 1024, max: 64000, zeroAllowed: true, dynamicAllowed: true };
+  }
+  return undefined;
 }
 
 // ---- Token refresh ----

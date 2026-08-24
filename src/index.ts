@@ -5,7 +5,7 @@ try {
 
 import { join } from 'node:path';
 import { Store } from './store.ts';
-import { createGatewayServer } from './server.ts';
+import { createGatewayServer, refreshAllModels } from './server.ts';
 import { startQuotaLoop, refreshAllQuotas } from './quota.ts';
 
 const dataDir = process.env.GATEWAY_DATA_DIR ?? join(process.cwd(), 'data');
@@ -29,6 +29,7 @@ server.listen(port, host, () => {
   try {
     refreshAllQuotas(store);
     startQuotaLoop(store);
+    void refreshAllModels(store).catch(() => {});
   } catch (err) {
     console.warn('[gateway] quota loop initialization notice:', err);
   }

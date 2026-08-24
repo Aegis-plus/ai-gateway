@@ -6,15 +6,15 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import type { Store } from './store.ts';
-import { MODEL_CATALOG, resolveModel } from './models.ts';
-import { sanitizeAccount, sanitizeApiKey, ProviderError, type Account } from './types.ts';
+import { MODEL_CATALOG, getModelCatalog, resolveModel, registerDynamicModels, syncModelsFromRemote } from './models.ts';
+import { sanitizeAccount, sanitizeApiKey, ProviderError, type Account, type AntigravityCreds } from './types.ts';
 import { accountsFor, startStreamWithRotation } from './pool.ts';
 import { refreshAccountQuota, refreshAllQuotas } from './quota.ts';
 import { parseOpenAIRequest, RequestFormatError, buildOpenAICompletion, streamOpenAI, openaiCompletionId } from './openai.ts';
 import { parseAnthropicRequest, buildAnthropicMessage, streamAnthropic } from './anthropic.ts';
 import { EventAggregator } from './aggregate.ts';
 import { startDeviceLogin, getLoginSession, importIdeToken, forceRefreshToken as kiroForceRefreshToken } from './auth/kiro.ts';
-import { startLogin, handleCallback, forceRefreshToken as agyForceRefreshToken } from './auth/antigravity.ts';
+import { startLogin, handleCallback, forceRefreshToken as agyForceRefreshToken, getValidAccessToken, fetchAntigravityModelEntries } from './auth/antigravity.ts';
 import { createBackup, restoreBackup } from './backup.ts';
 
 const MAX_BODY = 64 * 1024 * 1024;
@@ -116,11 +116,36 @@ export function createGatewayServer(store: Store): ReturnType<typeof createServe
     }
 
     if (method === 'GET' && path === '/v1/models') {
-      const data = MODEL_CATALOG.map((m) => ({
+      const catalog = getModelCatalog();
+      const data = catalog.map((m) => ({
         id: m.id,
         object: 'model',
-        created: 0,
+        created: 1704067200,
         owned_by: m.provider,
+        display_name: m.displayName || m.id,
+        description: m.description,
+        context_length: m.contextLength,
+        max_completion_tokens: m.maxCompletionTokens,
+        supports_web_search: m.supportsWebSearch ?? false,
+        thinking: m.thinking,
+        input_modalities: m.inputModalities,
+        output_modalities: m.outputModalities,
+        permission: [
+          {
+            id: `modelperm-${m.id.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
+            object: 'model_permission',
+            created: 1704067200,
+            allow_create_engine: false,
+            allow_sampling: true,
+            allow_logprobs: true,
+            allow_search_indices: false,
+            allow_view: true,
+            allow_fine_tuning: false,
+            organization: '*',
+            group: null,
+            is_blocking: false,
+          },
+        ],
       }));
       json(res, 200, { object: 'list', data });
       return;
@@ -337,7 +362,7 @@ export function createGatewayServer(store: Store): ReturnType<typeof createServe
     if (method === 'GET' && path === '/admin/api/state') {
       json(res, 200, {
         accounts: store.accounts.map(sanitizeAccount),
-        models: MODEL_CATALOG,
+        models: getModelCatalog(),
         config: {
           port: store.config.port,
           host: store.config.host,
@@ -347,6 +372,11 @@ export function createGatewayServer(store: Store): ReturnType<typeof createServe
           keys: store.getSanitizedApiKeys(),
         },
       });
+      return;
+    }
+    if (method === 'POST' && path === '/admin/api/models/refresh') {
+      const results = await refreshAllModels(store);
+      json(res, 200, { ok: true, count: getModelCatalog().length, models: getModelCatalog(), ...results });
       return;
     }
     if (method === 'GET' && path === '/admin/api/keys') {
@@ -495,4 +525,35 @@ async function readBody(req: IncomingMessage): Promise<any> {
 function json(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, { 'content-type': 'application/json' });
   res.end(JSON.stringify(body));
+}
+
+/**
+ * Refreshes models from all active Antigravity accounts and optionally syncs from remote catalog.
+ */
+export async function refreshAllModels(store: Store): Promise<{ agyAccountsRefreshed: number; agyModelsFound: number; remoteSync: boolean }> {
+  let agyAccountsRefreshed = 0;
+  let agyModelsFound = 0;
+
+  for (const account of store.accounts) {
+    if (account.provider === 'antigravity' && account.status.state !== 'expired') {
+      try {
+        const token = await getValidAccessToken(account.credentials as AntigravityCreds);
+        const models = await fetchAntigravityModelEntries(token, account.providerData?.projectId);
+        if (models.length > 0) {
+          registerDynamicModels('antigravity', models);
+          agyModelsFound += models.length;
+          agyAccountsRefreshed++;
+        }
+      } catch (err) {
+        console.warn(`[models] failed to refresh models for account ${account.email || account.id}:`, err instanceof Error ? err.message : String(err));
+      }
+    }
+  }
+
+  const remote = await syncModelsFromRemote();
+  return {
+    agyAccountsRefreshed,
+    agyModelsFound,
+    remoteSync: remote.success,
+  };
 }

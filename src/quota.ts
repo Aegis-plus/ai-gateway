@@ -6,7 +6,8 @@ import type { Account, AccountQuota, AntigravityCreds } from './types.ts';
 import { ProviderError } from './types.ts';
 import type { Store } from './store.ts';
 import { getUsageLimits } from './auth/kiro.ts';
-import { getValidAccessToken, loadCodeAssist, retrieveQuotaSummary } from './auth/antigravity.ts';
+import { getValidAccessToken, loadCodeAssist, retrieveQuotaSummary, fetchAntigravityModelEntries } from './auth/antigravity.ts';
+import { registerDynamicModels } from './models.ts';
 
 const QUOTA_INTERVAL_MS = 10 * 60_000;
 const inFlight = new Map<string, Promise<void>>();
@@ -123,6 +124,16 @@ async function doRefresh(account: Account, store: Store): Promise<void> {
             : ca.cloudaicompanionProject?.id
           : undefined;
       if (project) account.providerData = { ...account.providerData, projectId: project };
+
+      // Dynamically discover and register upstream Antigravity models for the project
+      try {
+        const dynamicModels = await fetchAntigravityModelEntries(token, project);
+        if (dynamicModels.length > 0) {
+          registerDynamicModels('antigravity', dynamicModels);
+        }
+      } catch {
+        // best-effort model discovery
+      }
     }
     store.markDirty();
   } catch (err) {
