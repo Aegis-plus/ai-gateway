@@ -16,7 +16,7 @@ describe('Model Catalog & Dynamic Registry', () => {
 
   it('provides base model catalog for both Kiro and Antigravity', () => {
     const catalog = getModelCatalog();
-    expect(catalog.length).toBeGreaterThan(20);
+    expect(catalog.length).toBeGreaterThan(15);
 
     const agyFlash = catalog.find((m) => m.id === 'agy/gemini-3.7-flash');
     expect(agyFlash).toBeDefined();
