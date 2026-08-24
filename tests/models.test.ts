@@ -58,8 +58,8 @@ describe('Model Catalog & Dynamic Registry', () => {
   it('resolves direct IDs, prefixed IDs, unprefixed names, and dot-hyphen variants', () => {
     expect(resolveModel('kiro/claude-sonnet-4.5')?.upstream).toBe('claude-sonnet-4.5');
     expect(resolveModel('kiro/claude-sonnet-4-5')?.upstream).toBe('claude-sonnet-4.5');
-    expect(resolveModel('agy/gemini-3.7-flash')?.upstream).toBe('gemini-3.7-flash-high');
-    expect(resolveModel('antigravity/gemini-3.7-flash')?.upstream).toBe('gemini-3.7-flash-high');
+    expect(resolveModel('agy/gemini-3.7-flash')?.upstream).toBe('gemini-3.7-flash-tiered');
+    expect(resolveModel('antigravity/gemini-3.7-flash')?.upstream).toBe('gemini-3.7-flash-tiered');
 
     // Unprefixed
     expect(resolveModel('gemini-3.7-flash')?.provider).toBe('antigravity');

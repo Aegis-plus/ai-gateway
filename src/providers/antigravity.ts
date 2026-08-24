@@ -2,10 +2,10 @@
 // Cloud Code v1internal:streamGenerateContent envelope and parses the
 // Gemini-shaped SSE response into ProviderEvents.
 
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import type { Account, CoreContent, CoreRequest, ProviderEvent } from '../types.ts';
 import { ProviderError } from '../types.ts';
-import { ANTIGRAVITY_BASES, contentHeaders, getValidAccessToken } from '../auth/antigravity.ts';
+import { ANTIGRAVITY_BASES, contentHeaders, ensureProject, getValidAccessToken } from '../auth/antigravity.ts';
 
 interface GeminiPart {
   text?: string;
@@ -27,6 +27,23 @@ interface GeminiChunk {
   error?: { code?: number; status?: string; message?: string };
 }
 
+function generateStableSessionId(messages: CoreRequest['messages']): string {
+  for (const m of messages) {
+    if (m.role === 'user') {
+      for (const p of m.content) {
+        if (p.type === 'text' && p.text && p.text.trim()) {
+          const hash = createHash('sha256').update(p.text.trim()).digest();
+          const value = hash.readBigInt64BE(0) & 0x7fffffffffffffffn;
+          return `-${value.toString()}`;
+        }
+      }
+    }
+  }
+  const buf = randomBytes(8);
+  const n = buf.readBigInt64BE(0) & 0x7fffffffffffffffn;
+  return `-${n.toString()}`;
+}
+
 export async function* streamAntigravity(
   req: CoreRequest,
   upstreamModel: string,
@@ -34,59 +51,117 @@ export async function* streamAntigravity(
 ): AsyncGenerator<ProviderEvent> {
   const creds = account.credentials as Extract<Account['credentials'], { kind: 'antigravity' }>;
   const accessToken = await getValidAccessToken(creds);
-  const projectId = account.providerData?.projectId;
+  let projectId = account.providerData?.projectId;
 
-  const envelope = {
-    project: projectId ?? '',
+  if (!projectId) {
+    try {
+      projectId = await ensureProject(accessToken);
+      if (projectId) {
+        account.providerData = { ...account.providerData, projectId };
+      }
+    } catch {}
+  }
+
+  const isImageModel = upstreamModel.includes('image');
+  const isClaude = upstreamModel.toLowerCase().includes('claude');
+  const sessionId = generateStableSessionId(req.messages);
+
+  const generationConfig: Record<string, unknown> = {
+    topK: 40,
+    ...(req.temperature !== undefined ? { temperature: req.temperature } : {}),
+    ...(req.topP !== undefined ? { topP: req.topP } : {}),
+  };
+  // CLIProxyAPI: only include maxOutputTokens for Claude models on Cloud Code Pa
+  if (isClaude && req.maxTokens !== undefined) {
+    generationConfig.maxOutputTokens = req.maxTokens;
+  }
+
+  const toolsData = toGeminiTools(req.tools);
+  const toolConfig = isClaude
+    ? { functionCallingConfig: { mode: 'VALIDATED' } }
+    : toolsData.toolConfig;
+
+  const requestPayload: Record<string, unknown> = {
+    contents: toGeminiContents(req.messages),
+    sessionId,
+    ...(req.system ? { systemInstruction: { parts: [{ text: req.system }] } } : {}),
+    generationConfig,
+    ...(toolConfig ? { toolConfig } : {}),
+    ...(toolsData.tools ? { tools: toolsData.tools } : {}),
+  };
+
+  const envelope: Record<string, unknown> = {
     model: upstreamModel,
     userAgent: 'antigravity',
-    requestType: 'agent',
-    requestId: `agent/${Date.now()}/${randomBytes(4).toString('hex')}`,
-    request: {
-      contents: toGeminiContents(req.messages),
-      ...(req.system ? { systemInstruction: { parts: [{ text: req.system }] } } : {}),
-      generationConfig: {
-        ...(req.temperature !== undefined ? { temperature: req.temperature } : {}),
-        ...(req.topP !== undefined ? { topP: req.topP } : {}),
-        ...(req.maxTokens !== undefined ? { maxOutputTokens: req.maxTokens } : {}),
-        topK: 40,
-      },
-      safetySettings: [
-        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-        { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' },
-      ],
-      ...toGeminiTools(req.tools),
-    },
+    requestType: isImageModel ? 'image_gen' : 'agent',
+    requestId: isImageModel ? `image_gen/${Date.now()}/${randomUUID()}/12` : `agent-${randomUUID()}`,
+    request: requestPayload,
   };
+
+  if (projectId) {
+    envelope.project = projectId;
+  }
 
   let res: Response | undefined;
   let lastError: unknown;
-  for (const base of ANTIGRAVITY_BASES) {
-    try {
-      const candidateRes = await fetch(`${base}/v1internal:streamGenerateContent?alt=sse`, {
-        method: 'POST',
-        headers: contentHeaders(accessToken),
-        body: JSON.stringify(envelope),
-      });
-      if (candidateRes.ok) {
+
+  // Build model fallback chain for 404 recovery
+  const candidateModels = [upstreamModel];
+  if (upstreamModel.startsWith('gemini-3.7')) {
+    candidateModels.push('gemini-3.7-flash-tiered', 'gemini-3.6-flash-high', 'gemini-3-flash');
+  } else if (upstreamModel.startsWith('gemini-3.6')) {
+    candidateModels.push('gemini-3.6-flash-high', 'gemini-3-flash');
+  } else if (upstreamModel.startsWith('gemini-3.5')) {
+    candidateModels.push('gemini-3.5-flash-low', 'gemini-3-flash');
+  } else if (upstreamModel.startsWith('gemini-3.1-pro')) {
+    candidateModels.push('gemini-3.1-pro-high', 'gemini-pro-agent');
+  }
+
+  const uniqueCandidateModels = Array.from(new Set(candidateModels));
+
+  for (const modelToTry of uniqueCandidateModels) {
+    envelope.model = modelToTry;
+
+    for (const base of ANTIGRAVITY_BASES) {
+      try {
+        const candidateRes = await fetch(`${base}/v1internal:streamGenerateContent?alt=sse`, {
+          method: 'POST',
+          headers: contentHeaders(accessToken),
+          body: JSON.stringify(envelope),
+        });
+
+        if (candidateRes.ok) {
+          res = candidateRes;
+          break;
+        }
+
+        const text = await candidateRes.text();
+        lastError = classifyAntigravityError(candidateRes.status, text);
+
+        // If 404, check if re-onboarding project helps
+        if (candidateRes.status === 404 && !projectId) {
+          try {
+            const newPid = await ensureProject(accessToken);
+            if (newPid) {
+              projectId = newPid;
+              account.providerData = { ...account.providerData, projectId: newPid };
+              envelope.project = newPid;
+            }
+          } catch {}
+        }
+
+        // Try the next base URL or model candidate on 404, 429, or 5xx
+        if (candidateRes.status === 404 || candidateRes.status === 429 || candidateRes.status >= 500) {
+          continue;
+        }
+
         res = candidateRes;
         break;
+      } catch (err) {
+        lastError = err;
       }
-      const text = await candidateRes.text();
-      lastError = classifyAntigravityError(candidateRes.status, text);
-      // If 429 or 5xx/404, try the next base before giving up
-      if (candidateRes.status === 429 || candidateRes.status === 404 || candidateRes.status >= 500) {
-        continue;
-      }
-      // For non-retryable errors (e.g. 400 Bad Request, 401 Unauthorized), stop
-      res = candidateRes;
-      break;
-    } catch (err) {
-      lastError = err;
     }
+    if (res && res.ok) break;
   }
   if (!res || !res.ok) {
     if (lastError instanceof ProviderError) throw lastError;

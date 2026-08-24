@@ -385,9 +385,9 @@ export const BASE_MODEL_CATALOG: ModelEntry[] = [
   {
     id: 'agy/gemini-3.7-flash',
     provider: 'antigravity',
-    upstream: 'gemini-3.7-flash-high',
+    upstream: 'gemini-3.7-flash-tiered',
     displayName: 'Gemini 3.7 Flash',
-    description: 'Antigravity · Gemini 3.7 Flash (High Thinking)',
+    description: 'Antigravity · Gemini 3.7 Flash',
     contextLength: 1048576,
     maxCompletionTokens: 65536,
     supportsWebSearch: true,
@@ -398,7 +398,7 @@ export const BASE_MODEL_CATALOG: ModelEntry[] = [
   {
     id: 'agy/gemini-3.7-flash-high',
     provider: 'antigravity',
-    upstream: 'gemini-3.7-flash-high',
+    upstream: 'gemini-3.7-flash-tiered',
     displayName: 'Gemini 3.7 Flash (High)',
     description: 'Antigravity · Gemini 3.7 Flash (High Thinking)',
     contextLength: 1048576,
@@ -411,7 +411,7 @@ export const BASE_MODEL_CATALOG: ModelEntry[] = [
   {
     id: 'agy/gemini-3.7-flash-thinking',
     provider: 'antigravity',
-    upstream: 'gemini-3.7-flash-high',
+    upstream: 'gemini-3.7-flash-tiered',
     displayName: 'Gemini 3.7 Flash (Thinking)',
     description: 'Antigravity · Gemini 3.7 Flash (Thinking)',
     contextLength: 1048576,
@@ -586,7 +586,7 @@ export const BASE_MODEL_CATALOG: ModelEntry[] = [
   {
     id: 'agy/gemini-3.1-pro',
     provider: 'antigravity',
-    upstream: 'gemini-pro-agent',
+    upstream: 'gemini-3.1-pro-high',
     displayName: 'Gemini 3.1 Pro',
     description: 'Antigravity · Gemini 3.1 Pro',
     contextLength: 1048576,
@@ -599,7 +599,7 @@ export const BASE_MODEL_CATALOG: ModelEntry[] = [
   {
     id: 'agy/gemini-3.1-pro-high',
     provider: 'antigravity',
-    upstream: 'gemini-pro-agent',
+    upstream: 'gemini-3.1-pro-high',
     displayName: 'Gemini 3.1 Pro (High)',
     description: 'Antigravity · Gemini 3.1 Pro (high)',
     contextLength: 1048576,
@@ -612,7 +612,7 @@ export const BASE_MODEL_CATALOG: ModelEntry[] = [
   {
     id: 'agy/gemini-3.1-pro-thinking',
     provider: 'antigravity',
-    upstream: 'gemini-pro-agent',
+    upstream: 'gemini-3.1-pro-high',
     displayName: 'Gemini 3.1 Pro (Thinking)',
     description: 'Antigravity · Gemini 3.1 Pro (thinking)',
     contextLength: 1048576,

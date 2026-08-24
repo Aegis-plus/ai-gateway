@@ -197,26 +197,63 @@ export async function loadCodeAssist(accessToken: string): Promise<LoadCodeAssis
 }
 
 function onboardTierId(resp: LoadCodeAssistResponse): string {
-  return resp.paidTier?.id ?? resp.currentTier?.id ?? resp.allowedTiers?.find((t) => t.isDefault)?.id ?? resp.allowedTiers?.[0]?.id ?? 'legacy-tier';
+  return resp.paidTier?.id ?? resp.currentTier?.id ?? resp.allowedTiers?.find((t) => t.isDefault)?.id ?? resp.allowedTiers?.[0]?.id ?? 'free-tier';
+}
+
+export async function onboardUser(accessToken: string, tierId: string): Promise<string | undefined> {
+  const requestBody = {
+    tier_id: tierId,
+    metadata: {
+      ide_type: 'ANTIGRAVITY',
+      ide_version: '2.1.1',
+      ide_name: 'antigravity',
+    },
+  };
+
+  const maxAttempts = 5;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const data = await callInternal<{
+        done?: boolean;
+        response?: { cloudaicompanionProject?: string | { id?: string } };
+      }>('/v1internal:onboardUser', accessToken, requestBody);
+
+      if (data && data.done) {
+        if (data.response) {
+          const project = projectIdOf(data.response);
+          if (project) return project;
+        }
+      }
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+    } catch (err) {
+      console.warn(`[antigravity] onboardUser attempt ${attempt} failed:`, err instanceof Error ? err.message : String(err));
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+    }
+  }
+  return undefined;
 }
 
 export async function ensureProject(accessToken: string): Promise<string | undefined> {
-  let resp = await loadCodeAssist(accessToken);
-  let project = projectIdOf(resp);
-  const targetTier = onboardTierId(resp);
+  try {
+    const resp = await loadCodeAssist(accessToken);
+    let project = projectIdOf(resp);
+    if (project) return project;
 
-  // If no project, or if user is eligible for paid tier but currentTier is not upgraded
-  if (!project || (resp.paidTier?.id && resp.currentTier?.id !== resp.paidTier.id)) {
-    try {
-      await callInternal('/v1internal:onboardUser', accessToken, {
-        tierId: targetTier,
-        metadata: { ideType: 'ANTIGRAVITY', platform: 'PLATFORM_UNSPECIFIED', pluginType: 'GEMINI' },
-      });
-      resp = await loadCodeAssist(accessToken);
-      project = projectIdOf(resp);
-    } catch {}
+    const targetTier = onboardTierId(resp);
+    const onboarded = await onboardUser(accessToken, targetTier);
+    if (onboarded) return onboarded;
+
+    // Retry loadCodeAssist once after onboarding
+    const postResp = await loadCodeAssist(accessToken);
+    return projectIdOf(postResp);
+  } catch (err) {
+    console.warn('[antigravity] ensureProject failed:', err instanceof Error ? err.message : String(err));
+    return undefined;
   }
-  return project;
 }
 
 // ---- Quota ----
