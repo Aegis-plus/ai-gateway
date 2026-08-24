@@ -30,11 +30,30 @@ describe('Model Catalog & Dynamic Registry', () => {
     expect(kiroSonnet?.provider).toBe('kiro');
     expect(kiroSonnet?.contextLength).toBe(200000);
     expect(kiroSonnet?.thinking?.max).toBe(64000);
+
+    // Verify zero duplicate upstreams per provider
+    const pairs = catalog.map((m) => `${m.provider}:${m.upstream}`);
+    const uniquePairs = new Set(pairs);
+    expect(pairs.length).toBe(uniquePairs.size);
   });
 
-  it('allows dynamic registration of new models', () => {
+  it('allows dynamic registration of new models without duplicating existing upstreams', () => {
     const initialCount = getModelCatalog().length;
+    
+    // Register duplicate existing upstream alongside one genuinely new model
     registerDynamicModels('antigravity', [
+      {
+        id: 'agy/gemini-3.7-flash-tiered',
+        provider: 'antigravity',
+        upstream: 'gemini-3.7-flash-tiered',
+        displayName: 'Duplicate Flash Tiered',
+      },
+      {
+        id: 'agy/claude-opus-4-6-thinking',
+        provider: 'antigravity',
+        upstream: 'claude-opus-4-6-thinking',
+        displayName: 'Duplicate Opus',
+      },
       {
         id: 'agy/gemini-future-4-ultra',
         provider: 'antigravity',
@@ -47,12 +66,18 @@ describe('Model Catalog & Dynamic Registry', () => {
     ]);
 
     const updated = getModelCatalog();
+    // Only the 1 genuinely new model should be added, duplicates ignored
     expect(updated.length).toBe(initialCount + 1);
 
     const found = updated.find((m) => m.id === 'agy/gemini-future-4-ultra');
     expect(found).toBeDefined();
     expect(found?.displayName).toBe('Gemini 4 Ultra');
     expect(found?.isDynamic).toBe(true);
+
+    // Verify zero duplicate upstreams per provider
+    const pairs = updated.map((m) => `${m.provider}:${m.upstream}`);
+    const uniquePairs = new Set(pairs);
+    expect(pairs.length).toBe(uniquePairs.size);
   });
 
   it('resolves direct IDs, prefixed IDs, unprefixed names, and dot-hyphen variants', () => {

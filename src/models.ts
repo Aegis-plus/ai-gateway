@@ -82,6 +82,17 @@ export const BASE_MODEL_CATALOG: ModelEntry[] = [
     outputModalities: ['text'],
   },
   {
+    id: 'kiro/glm-5',
+    provider: 'kiro',
+    upstream: 'glm-5',
+    displayName: 'GLM 5',
+    description: 'Kiro · GLM 5',
+    contextLength: 131072,
+    maxCompletionTokens: 8192,
+    inputModalities: ['text'],
+    outputModalities: ['text'],
+  },
+  {
     id: 'kiro/minimax-m2.5',
     provider: 'kiro',
     upstream: 'MiniMax-M2.5',
@@ -256,20 +267,27 @@ export const REMOTE_MODELS_URLS = [
 
 /**
  * Returns all active models combining the base static catalog and dynamic runtime registrations.
+ * Strictly guarantees that every model entry has a unique (provider, upstream) pairing.
  */
 export function getModelCatalog(): ModelEntry[] {
   const merged = new Map<string, ModelEntry>();
+  const seenUpstreams = new Set<string>();
+
   for (const m of BASE_MODEL_CATALOG) {
     merged.set(m.id, { ...m });
+    seenUpstreams.add(`${m.provider}:${m.upstream}`);
   }
+
   for (const [id, m] of dynamicRegistry.entries()) {
-    const existing = merged.get(id);
-    if (existing) {
-      merged.set(id, { ...existing, ...m });
-    } else {
+    const key = `${m.provider}:${m.upstream}`;
+    if (merged.has(id)) {
+      merged.set(id, { ...merged.get(id)!, ...m });
+    } else if (!seenUpstreams.has(key)) {
       merged.set(id, { ...m });
+      seenUpstreams.add(key);
     }
   }
+
   return Array.from(merged.values());
 }
 
