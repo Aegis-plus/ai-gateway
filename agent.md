@@ -6,9 +6,9 @@ This document provides architectural context, implementation rules, and operatio
 
 ## 1. Project Philosophy & Design Principles
 
-- **Zero Runtime Dependencies**: The gateway runs entirely on native Node.js built-ins (`node:http`, `node:crypto`, `node:fs`, `node:events`, fetch/streams API). Do **not** add runtime npm dependencies.
-- **TypeScript First**: Strict TypeScript configuration (`tsconfig.json`) running natively via `tsx` and tested via `vitest`. All code must compile cleanly with `npm run typecheck`.
-- **Unified Core Abstraction**: Incoming protocols (OpenAI `/v1/chat/completions`, Anthropic `/v1/messages`) are normalized into `CoreRequest` and streamed back as `ProviderEvent` streams, decoupling frontend clients from upstream provider schemas.
+- **Bun First & Zero Runtime Dependencies**: The gateway runs natively on **Bun** utilizing Web and standard built-in APIs (`node:http`, `node:crypto`, `node:fs`, `node:events`, fetch/streams API). Do **not** add runtime npm dependencies.
+- **TypeScript First**: Strict TypeScript configuration (`tsconfig.json`) running directly with Bun's built-in TypeScript engine and tested via `bun test`. All code must compile cleanly with `bun run typecheck`.
+- **Unified Core Abstraction**: Incoming protocols (OpenAI `/v1/chat/completions`, `/v1/images/generations`, `/v1/images/edits`, Anthropic `/v1/messages`) are normalized into `CoreRequest` and streamed back as `ProviderEvent` streams, decoupling frontend clients from upstream provider schemas.
 - **Single-Flight Account Rotation**: Resilient account pooling with automatic round-robin selection, preemptive token self-healing, quota cooldown tracking, and transparent rotation on pre-stream errors.
 - **Atomic Persistence**: State is stored in file-backed atomic JSON files (`data/accounts.json`, `data/config.json`) managed by `src/store.ts` with dirty-marking and debounced flushing.
 - **Production & Ingress Ready**: Native dual-stack `0.0.0.0` binding, configurable host/port resolution, global CORS preflight, and full compatibility with Cloudflare Tunnel, reverse proxies, and VPS deployments.
@@ -18,16 +18,17 @@ This document provides architectural context, implementation rules, and operatio
 ## 2. System Architecture & Request Lifecycle
 
 ```
-[ Client: Claude Code / Cursor / Cline / Roo / OpenAI & Anthropic SDKs ]
+[ Client: Claude Code / Cursor / Cline / Roo / OpenAI & Anthropic SDKs / Image Clients ]
                                   │
-      HTTP POST (/v1/chat/completions, /v1/messages, /chat/completions, /messages)
+      HTTP POST (/v1/chat/completions, /v1/messages, /v1/images/generations, /v1/images/edits)
                                   ▼
                     [ src/server.ts (HTTP Router) ]
                                   │
          ├── Authenticate via Bearer Token (sk-gw-...) or X-API-Key
          ├── Normalize request into unified CoreRequest:
-         │     - OpenAI format: src/openai.ts
-         │     - Anthropic format: src/anthropic.ts
+         │     - OpenAI chat completions: src/openai.ts
+         │     - OpenAI image generation / edits: src/server.ts + src/openai.ts
+         │     - Anthropic messages: src/anthropic.ts
          │
          ▼
       [ src/pool.ts (Pool Manager) ]
@@ -41,7 +42,7 @@ This document provides architectural context, implementation rules, and operatio
          ▼
   [ Stream Converter / Aggregator ]
          ├── Streaming: streamOpenAI (src/openai.ts) or streamAnthropic (src/anthropic.ts)
-         └── Non-Streaming: EventAggregator (src/aggregate.ts) -> buildOpenAICompletion / buildAnthropicMessage
+         └── Non-Streaming: EventAggregator (src/aggregate.ts) -> buildOpenAICompletion / buildAnthropicMessage / JSON image response
          │
          ▼
      [ Client Response Stream / JSON ]
@@ -69,7 +70,22 @@ This document provides architectural context, implementation rules, and operatio
    - Maps `CoreRequest` to Gemini `contents`, `systemInstruction`, and `tools`.
    - **Schema Pruning**: Gemini strictly rejects invalid JSON Schema fields (e.g. `$schema`, `additionalProperties`, unlisted `required` keys). `cleanSchemaNode()` cleans parameter definitions recursively and converts enums to string arrays.
    - **Tool Calling**: Sets `thoughtSignature: 'skip_thought_signature_validator'` on assistant tool calls to bypass internal thought validation checks.
+   - **Vertex Claude Whitespace Rules**: Claude models on Cloud Code strictly reject empty or whitespace-only text blocks with `400 INVALID_ARGUMENT (messages: text content blocks must contain non-whitespace text)`. `toGeminiContents` filters empty text blocks, and `systemInstruction` is omitted unless non-whitespace text is present.
    - **Multi-Tier Quota Buckets**: Telemetry in `src/quota.ts` parses quota summaries into Gemini rolling/weekly/daily limits and separate Claude/GPT-OSS buckets.
+
+4. **Image Models (`gemini-3.1-flash-image`) — text2img & img2img**:
+   - **Envelope Configuration**:
+     - `requestType: 'image_gen'`
+     - `requestId: image_gen/${Date.now()}/${uuid}/12`
+     - `sessionId` is omitted from `request`.
+     - `generationConfig.responseModalities: ["TEXT", "IMAGE"]`
+     - `generationConfig.imageConfig: { aspectRatio?, imageSize? }`
+   - **Aspect Ratio & Resolution Mapping**:
+     - Supported aspect ratios: `"1:1"`, `"16:9"`, `"9:16"`, `"4:3"`, `"3:4"`, `"3:2"`, `"2:3"`, `"5:4"`, `"4:5"`, `"21:9"` (also parsed from DALL-E `size` strings).
+     - Supported image sizes: `"1K"`, `"2K"`, `"4K"` (also mapped from OpenAI `quality: "hd"` -> `2K`, `"standard"` -> `1K`).
+   - **Response Handling**:
+     - Candidate parts with `inlineData` / `inline_data` emit `{ type: 'image', mediaType, base64 }` and Markdown `![Generated Image](data:...)`.
+     - Output streamed directly as OpenAI/Anthropic image blocks or converted into standard OpenAI `{ data: [{ b64_json, url }] }` responses.
 
 ---
 
@@ -94,24 +110,35 @@ This document provides architectural context, implementation rules, and operatio
 
 ---
 
-## 4. Model Catalog & Resolution Strategy
+## 4. Model Catalog & Upstream Deduplication (`src/models.ts`)
 
-Models are defined in `src/models.ts` with standard namespace prefixes (`agy/...` and `kiro/...`).
+Models are maintained in a streamlined canonical catalog in `src/models.ts` with standard namespace prefixes (`agy/...` and `kiro/...`).
 
-### Supported Model Families
+### Canonical Model Catalog
 
-| Provider | Public ID Prefix | Key Models |
-|---|---|---|
-| **Antigravity** | `agy/` or `antigravity/` | `gemini-3.7-flash` (High/Medium/Low thinking), `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.1-pro`, `gemini-3.1-flash-lite`, `gemini-3-pro`, `gemini-3-flash`, `claude-sonnet-4.6`, `claude-opus-4.6`, `gpt-oss-120b` |
-| **Kiro** | `kiro/` | `claude-sonnet-4.5` (Thinking/Agentic), `claude-haiku-4.5`, `claude-3.7-sonnet`, `claude-3.5-sonnet`, `deepseek-3.2`, `qwen3-coder-next`, `glm-5`, `minimax-m2.5`, `auto` |
+| Provider | Model ID | Upstream Model Name | Modalities | Description |
+|---|---|---|---|---|
+| **Antigravity** | `agy/claude-opus-4.6` | `claude-opus-4-6-thinking` | Text, Image | Claude Opus 4.6 (Extended Thinking) |
+| **Antigravity** | `agy/claude-sonnet-4.6` | `claude-sonnet-4-6` | Text, Image | Claude Sonnet 4.6 |
+| **Antigravity** | `agy/gemini-3.7-flash` | `gemini-3.7-flash-tiered` | Text, Multimodal | Gemini 3.7 Flash (Hybrid Thinking) |
+| **Antigravity** | `agy/gemini-3.6-flash` | `gemini-3.6-flash-high` | Text, Multimodal | Gemini 3.6 Flash |
+| **Antigravity** | `agy/gemini-3-flash` | `gemini-3-flash` | Text, Multimodal | Gemini 3 Flash |
+| **Antigravity** | `agy/gemini-3.5-flash` | `gemini-3.5-flash-low` | Text, Multimodal | Gemini 3.5 Flash |
+| **Antigravity** | `agy/gemini-3.1-pro` | `gemini-3.1-pro-high` | Text, Multimodal | Gemini 3.1 Pro (High Thinking) |
+| **Antigravity** | `agy/gemini-3.1-pro-low` | `gemini-3.1-pro-low` | Text, Multimodal | Gemini 3.1 Pro (Low Thinking) |
+| **Antigravity** | `agy/gemini-3.1-flash-lite`| `gemini-3.1-flash-lite` | Text, Multimodal | Gemini 3.1 Flash Lite |
+| **Antigravity** | `agy/gemini-3.1-flash-image`| `gemini-3.1-flash-image` | Text $\leftrightarrow$ Image | Gemini 3.1 Flash Image (text2img & img2img) |
+| **Antigravity** | `agy/gpt-oss-120b` | `gpt-oss-120b-medium` | Text | OpenAI OSS 120B on Google TPU |
+| **Kiro** | `kiro/claude-sonnet-4.5` | `claude-sonnet-4.5` | Text, Multimodal | Claude Sonnet 4.5 (Extended Thinking) |
+| **Kiro** | `kiro/claude-haiku-4.5` | `claude-haiku-4.5` | Text, Multimodal | Claude Haiku 4.5 |
+| **Kiro** | `kiro/deepseek-3.2` | `deepseek-3.2` | Text | DeepSeek V3 / R1 reasoning |
+| **Kiro** | `kiro/qwen3-coder-next` | `qwen3-coder-next` | Text | Qwen 3 Coder Next |
+| **Kiro** | `kiro/glm-5` | `glm-5` | Text | GLM-5 |
+| **Kiro** | `kiro/minimax-m2.5` | `MiniMax-M2.5` | Text | MiniMax M2.5 |
+| **Kiro** | `kiro/auto` | `auto` | Text, Multimodal | Dynamic routing cursor |
 
-### 6-Stage Resolution Cascade (`resolveModel()`)
-1. **Direct Match**: Exact public `id` match (e.g. `kiro/claude-sonnet-4.5`, `agy/gemini-3.7-flash`).
-2. **Prefix Normalization**: Aliases `antigravity/*` to `agy/*`.
-3. **Dot / Hyphen Normalization**: Matches `kiro/claude-sonnet-4-5` to `kiro/claude-sonnet-4.5`.
-4. **Explicit Prefix Lookup**: Strips prefix and resolves against provider catalog entries or forwards raw upstream IDs.
-5. **Bare Name Lookup**: Matches unprefixed names (e.g. `gemini-3.7-flash` or `claude-sonnet-4.5`) to default catalog entries.
-6. **Dynamic Inference Fallback**: Regex patterns route uncataloged model names (`/^gemini|gpt-oss/i` -> Antigravity, `/^claude|gpt|deepseek|qwen|glm|minimax/i` -> Kiro).
+### Dynamic Upstream Deduplication Rule
+`getModelCatalog()` strictly tracks seen `(provider, upstream)` pairs. Any dynamic model discovered at runtime whose `(provider, upstream)` already exists in the catalog is discarded, ensuring zero duplicate upstream entries in `/v1/models` and the dashboard.
 
 ---
 
@@ -133,23 +160,23 @@ Models are defined in `src/models.ts` with standard namespace prefixes (`agy/...
 | Path | Purpose |
 |---|---|
 | `src/index.ts` | Gateway entry point, environment loading, dual-stack host/port binding, quota loop initialization, graceful shutdown. |
-| `src/server.ts` | Core HTTP router, CORS handling, dual protocol dispatch (`/v1/chat/completions`, `/v1/messages`), admin REST API, dashboard serving. |
+| `src/server.ts` | Core HTTP router, CORS handling, protocol dispatch (`/v1/chat/completions`, `/v1/messages`, `/v1/images/generations`, `/v1/images/edits`), admin REST API, dashboard serving. |
 | `src/types.ts` | Canonical TypeScript interfaces (`CoreRequest`, `Account`, `ProviderEvent`, `AccountQuota`, `ProviderError`). |
 | `src/store.ts` | File-backed JSON store with dirty tracking, debounced writes, and atomic persistence (`accounts.json`, `config.json`). |
-| `src/models.ts` | Model catalog, alias mappings, dot/hyphen normalization, and dynamic model routing. |
+| `src/models.ts` | Model catalog, alias mappings, dot/hyphen normalization, upstream deduplication, and dynamic model routing. |
 | `src/pool.ts` | Account candidate selector, round-robin cursor, error state application, and single-flight stream rotation. |
 | `src/quota.ts` | Background quota poller (10-minute interval), on-demand refresh, and multi-tier bucket classifier. |
-| `src/aggregate.ts` | EventAggregator collecting stream events into synchronous completion responses and token usage for non-streaming calls. |
-| `src/openai.ts` | Bidirectional OpenAI format converter (chat completions requests, streaming SSE chunks, stream usage options). |
-| `src/anthropic.ts` | Bidirectional Anthropic format converter (messages API requests, SSE event streams, input token estimation). |
+| `src/aggregate.ts` | EventAggregator collecting stream events (text, images, tool calls, usage) into synchronous completion responses. |
+| `src/openai.ts` | Bidirectional OpenAI format converter (chat completions, image config parsing, streaming SSE chunks, stream usage options). |
+| `src/anthropic.ts` | Bidirectional Anthropic format converter (messages API requests, image content blocks, SSE event streams). |
 | `src/backup.ts` | Encrypted (AES-256-GCM with scrypt key derivation) and plaintext account backup/restore logic. |
 | `src/auth/antigravity.ts` | Google OAuth 2.0 PKCE, companion project onboarding, quota summary fetching, token refresh. |
 | `src/auth/kiro.ts` | AWS SSO OIDC device code login, desktop IDE token import, profile resolution, token refresh, usage limit queries. |
-| `src/providers/antigravity.ts` | Gemini envelope builder, JSON Schema sanitization, SSE stream consumer, error classification. |
+| `src/providers/antigravity.ts` | Gemini & Image envelope builder, schema sanitization, SSE stream consumer, error classification. |
 | `src/providers/kiro.ts` | CodeWhisperer conversationState builder, message flattener, tool specification adapter, event-stream consumer. |
 | `src/providers/eventstream.ts` | AWS binary EventStream parser (prelude decoding, CRC32 verification, header/payload extraction). |
 | `public/index.html` | Self-contained dark-mode single-page dashboard (Vanilla JS + CSS, zero CDN dependencies). |
-| `tests/` | Vitest test suite covering format conversions, AWS eventstream framing, encrypted backups, and API key management (`tests/keys.test.ts`). |
+| `tests/` | Bun test suite covering format conversions, image generation/editing, AWS eventstream framing, encrypted backups, and API keys. |
 
 ---
 
@@ -187,14 +214,14 @@ When making changes to this codebase, follow these rules:
 
 1. **Verify Code Correctness**:
    ```bash
-   npm run typecheck   # Must pass with 0 TypeScript errors
-   npm test            # Must pass all Vitest unit tests
+   bun run typecheck   # Must pass with 0 TypeScript errors
+   bun test            # Must pass all unit tests
    ```
 
 2. **Preserve Compatibility**:
    - Do not remove or alter public model IDs in `src/models.ts` without ensuring backward-compatible aliases.
    - Keep error classifications (`classifyAntigravityError`, `classifyKiroError`) accurate so the pool properly distinguishes between short-term rate limits (`rate_limit`), exhausted quotas (`quota`), and authentication failures (`auth` / `invalid_grant`).
-   - Maintain dual-protocol parity: any new feature or tool enhancement must function seamlessly across both OpenAI and Anthropic endpoint formats.
+   - Maintain multi-protocol parity: any new feature or tool enhancement must function seamlessly across OpenAI, Anthropic, and image endpoint formats.
 
 3. **No External Runtime Dependencies**:
-   - Rely solely on Node.js built-in modules (`node:crypto`, `node:fs`, `node:http`, `node:events`, etc.). Do not add runtime dependencies to `package.json`.
+   - Rely on native built-in modules (`node:crypto`, `node:fs`, `node:http`, `node:events`, Web streams, etc.). Do not add runtime dependencies to `package.json`.
