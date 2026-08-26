@@ -33,6 +33,10 @@ export interface CoreRequest {
   temperature?: number;
   topP?: number;
   maxTokens?: number;
+  imageConfig?: {
+    aspectRatio?: string;
+    imageSize?: string;
+  };
   stream: boolean;
 }
 

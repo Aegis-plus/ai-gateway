@@ -88,6 +88,24 @@ export function parseOpenAIRequest(body: any): CoreRequest {
         }))
     : undefined;
 
+  const rawAspect =
+    body.image_config?.aspect_ratio ??
+    body.image_config?.aspectRatio ??
+    body.aspect_ratio ??
+    body.aspectRatio;
+  const rawSize =
+    body.image_config?.image_size ??
+    body.image_config?.imageSize ??
+    body.image_size ??
+    body.imageSize ??
+    body.size ??
+    body.resolution;
+
+  const aspectRatio = parseAspectRatio(rawAspect, rawSize);
+  const imageSize = parseImageSize(rawSize, body.quality);
+
+  const imageConfig = aspectRatio || imageSize ? { aspectRatio, imageSize } : undefined;
+
   return {
     model: String(body.model ?? ''),
     system: systemParts.length > 0 ? systemParts.join('\n\n') : undefined,
@@ -96,6 +114,7 @@ export function parseOpenAIRequest(body: any): CoreRequest {
     temperature: num(body.temperature),
     topP: num(body.top_p),
     maxTokens: num(body.max_tokens) ?? num(body.max_completion_tokens),
+    imageConfig,
     stream: body.stream === true,
   };
 }
@@ -110,6 +129,40 @@ function safeParseJson(text: string): unknown {
   } catch {
     return {};
   }
+}
+
+export function parseAspectRatio(rawAspect?: unknown, rawSize?: unknown): string | undefined {
+  if (typeof rawAspect === 'string') {
+    const trimmed = rawAspect.trim();
+    if (trimmed) return trimmed;
+  }
+  if (typeof rawSize === 'string') {
+    const s = rawSize.toLowerCase().trim();
+    if (s === '1024x1024' || s === '512x512' || s === '256x256') return '1:1';
+    if (s === '1792x1024' || s === '1344x768' || s === '1920x1080' || s === '1280x720') return '16:9';
+    if (s === '1024x1792' || s === '768x1344' || s === '1080x1920' || s === '720x1280') return '9:16';
+    if (s === '1024x768' || s === '1184x864') return '4:3';
+    if (s === '768x1024' || s === '864x1184') return '3:4';
+    if (s === '1248x832') return '3:2';
+    if (s === '832x1248') return '2:3';
+    if (s === '1152x896') return '5:4';
+    if (s === '896x1152') return '4:5';
+    if (s === '1536x672') return '21:9';
+  }
+  return undefined;
+}
+
+export function parseImageSize(rawSize?: unknown, rawQuality?: unknown): string | undefined {
+  if (typeof rawSize === 'string') {
+    const s = rawSize.toLowerCase().trim();
+    if (s === '1k' || s === '2k' || s === '4k') return s.toUpperCase();
+  }
+  if (typeof rawQuality === 'string') {
+    const q = rawQuality.toLowerCase().trim();
+    if (q === 'hd' || q === 'high') return '2K';
+    if (q === 'standard' || q === 'low') return '1K';
+  }
+  return undefined;
 }
 
 export function parseDataUrl(url: string): { mediaType: string; base64: string } | undefined {

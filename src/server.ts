@@ -10,7 +10,7 @@ import { MODEL_CATALOG, getModelCatalog, resolveModel, registerDynamicModels, sy
 import { sanitizeAccount, sanitizeApiKey, ProviderError, type Account, type AntigravityCreds, type CoreRequest, type CoreContent } from './types.ts';
 import { accountsFor, startStreamWithRotation } from './pool.ts';
 import { refreshAccountQuota, refreshAllQuotas } from './quota.ts';
-import { parseOpenAIRequest, RequestFormatError, buildOpenAICompletion, streamOpenAI, openaiCompletionId, parseDataUrl } from './openai.ts';
+import { parseOpenAIRequest, RequestFormatError, buildOpenAICompletion, streamOpenAI, openaiCompletionId, parseDataUrl, parseAspectRatio, parseImageSize } from './openai.ts';
 import { parseAnthropicRequest, buildAnthropicMessage, streamAnthropic } from './anthropic.ts';
 import { EventAggregator } from './aggregate.ts';
 import { startDeviceLogin, getLoginSession, importIdeToken, forceRefreshToken as kiroForceRefreshToken } from './auth/kiro.ts';
@@ -240,9 +240,27 @@ export function createGatewayServer(store: Store): ReturnType<typeof createServe
         return;
       }
 
+      const rawAspect =
+        body?.image_config?.aspect_ratio ??
+        body?.image_config?.aspectRatio ??
+        body?.aspect_ratio ??
+        body?.aspectRatio;
+      const rawSize =
+        body?.image_config?.image_size ??
+        body?.image_config?.imageSize ??
+        body?.image_size ??
+        body?.imageSize ??
+        body?.size ??
+        body?.resolution;
+
+      const aspectRatio = parseAspectRatio(rawAspect, rawSize);
+      const imageSize = parseImageSize(rawSize, body?.quality);
+      const imageConfig = aspectRatio || imageSize ? { aspectRatio, imageSize } : undefined;
+
       const core: CoreRequest = {
         model: entry.id,
         messages: [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+        imageConfig,
         stream: false,
       };
 
@@ -319,9 +337,27 @@ export function createGatewayServer(store: Store): ReturnType<typeof createServe
       }
       contentParts.push({ type: 'text', text: prompt });
 
+      const rawAspect =
+        body?.image_config?.aspect_ratio ??
+        body?.image_config?.aspectRatio ??
+        body?.aspect_ratio ??
+        body?.aspectRatio;
+      const rawSize =
+        body?.image_config?.image_size ??
+        body?.image_config?.imageSize ??
+        body?.image_size ??
+        body?.imageSize ??
+        body?.size ??
+        body?.resolution;
+
+      const aspectRatio = parseAspectRatio(rawAspect, rawSize);
+      const imageSize = parseImageSize(rawSize, body?.quality);
+      const imageConfig = aspectRatio || imageSize ? { aspectRatio, imageSize } : undefined;
+
       const core: CoreRequest = {
         model: entry.id,
         messages: [{ role: 'user', content: contentParts }],
+        imageConfig,
         stream: false,
       };
 

@@ -394,5 +394,42 @@ describe('Image Model Support (gemini-3.1-flash-image)', () => {
     expect(agg.result().images).toHaveLength(1);
     expect(agg.result().images[0]!.base64).toBe(imgEv.base64);
   });
+
+  it('parses aspect ratio and image size / resolution from various parameters', () => {
+    // Direct aspect_ratio
+    const req1 = parseOpenAIRequest({
+      model: 'agy/gemini-3.1-flash-image',
+      messages: [{ role: 'user', content: 'Landscape wallpaper' }],
+      aspect_ratio: '16:9',
+      image_size: '2k',
+    });
+    expect(req1.imageConfig).toEqual({ aspectRatio: '16:9', imageSize: '2K' });
+
+    // OpenRouter image_config
+    const req2 = parseOpenAIRequest({
+      model: 'agy/gemini-3.1-flash-image',
+      messages: [{ role: 'user', content: 'Portrait wallpaper' }],
+      image_config: { aspect_ratio: '9:16', image_size: '4k' },
+    });
+    expect(req2.imageConfig).toEqual({ aspectRatio: '9:16', imageSize: '4K' });
+
+    // DALL-E / OpenAI size & quality
+    const req3 = parseOpenAIRequest({
+      model: 'agy/gemini-3.1-flash-image',
+      messages: [{ role: 'user', content: 'Square icon' }],
+      size: '1024x1024',
+      quality: 'hd',
+    });
+    expect(req3.imageConfig).toEqual({ aspectRatio: '1:1', imageSize: '2K' });
+
+    // Wide resolution mapping
+    const req4 = parseOpenAIRequest({
+      model: 'agy/gemini-3.1-flash-image',
+      messages: [{ role: 'user', content: 'Cinematic wide' }],
+      size: '1792x1024',
+      quality: 'standard',
+    });
+    expect(req4.imageConfig).toEqual({ aspectRatio: '16:9', imageSize: '1K' });
+  });
 });
 

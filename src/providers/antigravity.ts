@@ -71,6 +71,14 @@ export async function* streamAntigravity(
     ...(req.temperature !== undefined ? { temperature: req.temperature } : {}),
     ...(req.topP !== undefined ? { topP: req.topP } : {}),
     ...(isImageModel ? { responseModalities: ['TEXT', 'IMAGE'] } : {}),
+    ...(req.imageConfig?.aspectRatio || req.imageConfig?.imageSize
+      ? {
+          imageConfig: {
+            ...(req.imageConfig.aspectRatio ? { aspectRatio: req.imageConfig.aspectRatio } : {}),
+            ...(req.imageConfig.imageSize ? { imageSize: req.imageConfig.imageSize } : {}),
+          },
+        }
+      : {}),
   };
   // CLIProxyAPI: only include maxOutputTokens for Claude models on Cloud Code Pa
   if (isClaude && req.maxTokens !== undefined) {
