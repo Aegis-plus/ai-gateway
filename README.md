@@ -1,9 +1,9 @@
 # AI Gateway — Kiro + Google Antigravity
 
-[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22.18-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Bun](https://img.shields.io/badge/Bun-%3E%3D1.0-fbf0df?logo=bun&logoColor=black)](https://bun.sh/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Zero Runtime Dependencies](https://img.shields.io/badge/Dependencies-0%20Runtime-blue.svg)](#features)
-[![Vitest](https://img.shields.io/badge/Tested%20With-Vitest-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![Bun Test](https://img.shields.io/badge/Tested%20With-Bun%20Test-6E9F18?logo=bun&logoColor=black)](https://bun.sh/docs/cli/test)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A high-performance, multi-account AI Gateway bridging **AWS Kiro** (CodeWhisperer / Q Developer) and **Google Antigravity** (Cloud Code) into unified **OpenAI-** and **Anthropic-compatible** API endpoints.
@@ -13,7 +13,7 @@ A high-performance, multi-account AI Gateway bridging **AWS Kiro** (CodeWhispere
 ## ✨ Features
 
 - 🔌 **Dual API Compatibility**:
-  - **OpenAI Endpoint**: `/v1/models`, `/v1/chat/completions` (streaming SSE & non-streaming JSON).
+  - **OpenAI Endpoint**: `/v1/models`, `/v1/chat/completions` (streaming SSE & non-streaming JSON), `/v1/images/generations`, `/v1/images/edits`.
   - **Anthropic Endpoint**: `/v1/messages` (streaming SSE & non-streaming JSON), enabling seamless native integration with **Claude Code**.
 - 🔄 **Intelligent Multi-Account Pooling**:
   - Pool unlimited Kiro and Antigravity accounts.
@@ -22,13 +22,13 @@ A high-performance, multi-account AI Gateway bridging **AWS Kiro** (CodeWhispere
   - Live per-account quota & credit tracking (Kiro usage limits, Antigravity quota buckets).
   - Automated background refresh (every 10 minutes) and reactive refresh upon upstream error.
 - 🛠️ **Full Tool Calling & Vision Support**:
-  - End-to-end support for function calling and multimodal image inputs across both providers.
+  - End-to-end support for function calling, multimodal image inputs, text-to-image (text2img), and image editing (img2img).
 - 🖥️ **Built-in Web Dashboard**:
   - Single-page management UI (Vanilla JS + CSS, zero build step) for OAuth logins, device flows, account health, live quotas, server settings, and API key generation.
 - 🔒 **Encrypted Account Portability**:
   - Export and import account pools with optional AES-256-GCM encryption for seamless migration between local machines and remote servers/VPS.
 - ⚡ **Zero Runtime Dependencies**:
-  - Built entirely with native Node.js standard library APIs (`node:http`, `node:crypto`, `node:fs`, `node:events`, `fetch`).
+  - Built with native standards and executed blazing fast on **Bun**.
 
 ---
 
@@ -77,8 +77,7 @@ A high-performance, multi-account AI Gateway bridging **AWS Kiro** (CodeWhispere
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **Node.js ≥ 22.18** (for native TypeScript type stripping) or **Node.js ≥ 20.0.0** (executed with `tsx`).
-- npm or pnpm.
+- **Bun ≥ 1.0** ([install bun](https://bun.sh/): `curl -fsSL https://bun.sh/install | bash`).
 
 ### 1. Installation
 ```bash
@@ -86,8 +85,8 @@ A high-performance, multi-account AI Gateway bridging **AWS Kiro** (CodeWhispere
 git clone git@github.com:Aegis-plus/ai-gateway.git
 cd ai-gateway
 
-# Install dependencies (development tools: tsx, vitest, typescript)
-npm install
+# Install dev dependencies
+bun install
 
 # Optional: configure custom OAuth credentials
 cp .env.example .env
@@ -95,11 +94,11 @@ cp .env.example .env
 
 ### 2. Start the Server
 ```bash
-# Development mode (with live reload)
-npm run dev
+# Development mode (with live watch reload)
+bun run dev
 
 # Or production mode
-npm start
+bun start
 ```
 
 ### 3. Open the Dashboard

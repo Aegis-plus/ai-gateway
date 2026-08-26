@@ -4,23 +4,17 @@
   "description": "Lightweight multi-account gateway for Kiro and Google Antigravity with an OpenAI- and Anthropic-compatible API",
   "private": true,
   "type": "module",
-  "engines": {
-    "node": ">=22.18"
-  },
   "scripts": {
-    "dev": "tsx src/index.ts",
-    "dev:watch": "tsx watch src/index.ts",
-    "start": "tsx src/index.ts",
-    "fetch-models": "tsx src/fetch-models.ts",
+    "dev": "bun --watch src/index.ts",
+    "dev:watch": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "fetch-models": "bun src/fetch-models.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
-  },
-  "dependencies": {
-    "tsx": "^4.19.0"
+    "test": "bun test"
   },
   "devDependencies": {
+    "@types/bun": "latest",
     "@types/node": "^22.10.0",
-    "typescript": "^5.7.0",
-    "vitest": "^3.0.0"
+    "typescript": "^5.7.0"
   }
 }
