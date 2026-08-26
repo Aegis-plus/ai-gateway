@@ -98,6 +98,16 @@ function stopReasonOf(finish: Aggregated['finish']): string {
 export function buildAnthropicMessage(agg: Aggregated, model: string): object {
   const content: Record<string, unknown>[] = [];
   if (agg.text) content.push({ type: 'text', text: agg.text });
+  for (const img of agg.images || []) {
+    content.push({
+      type: 'image',
+      source: {
+        type: 'base64',
+        media_type: img.mediaType,
+        data: img.base64,
+      },
+    });
+  }
   for (const call of agg.toolCalls) {
     content.push({
       type: 'tool_use',
@@ -164,6 +174,21 @@ export async function streamAnthropic(
           outputChars += ev.text.length;
           send({ type: 'content_block_delta', index: blockIndex, delta: { type: 'text_delta', text: ev.text } });
           break;
+        case 'image': {
+          closeBlock();
+          send({
+            type: 'content_block_start',
+            index: blockIndex,
+            content_block: {
+              type: 'image',
+              source: { type: 'base64', media_type: ev.mediaType, data: ev.base64 },
+            },
+          });
+          send({ type: 'content_block_stop', index: blockIndex });
+          blockIndex += 1;
+          openBlockType = null;
+          break;
+        }
         case 'tool_start': {
           closeBlock();
           blockIds.set(ev.id, blockIndex);

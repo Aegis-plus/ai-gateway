@@ -64,12 +64,13 @@ export async function* streamAntigravity(
 
   const isImageModel = upstreamModel.includes('image');
   const isClaude = upstreamModel.toLowerCase().includes('claude');
-  const sessionId = generateStableSessionId(req.messages);
+  const sessionId = isImageModel ? undefined : generateStableSessionId(req.messages);
 
   const generationConfig: Record<string, unknown> = {
     ...(isClaude ? {} : { topK: 40 }),
     ...(req.temperature !== undefined ? { temperature: req.temperature } : {}),
     ...(req.topP !== undefined ? { topP: req.topP } : {}),
+    ...(isImageModel ? { responseModalities: ['TEXT', 'IMAGE'] } : {}),
   };
   // CLIProxyAPI: only include maxOutputTokens for Claude models on Cloud Code Pa
   if (isClaude && req.maxTokens !== undefined) {
@@ -86,7 +87,7 @@ export async function* streamAntigravity(
 
   const requestPayload: Record<string, unknown> = {
     contents: toGeminiContents(req.messages),
-    sessionId,
+    ...(sessionId ? { sessionId } : {}),
     ...(systemText ? { systemInstruction: { role: 'user', parts: [{ text: systemText }] } } : {}),
     generationConfig,
     ...(toolConfig ? { toolConfig } : {}),
@@ -252,7 +253,13 @@ export function geminiChunkToEvents(chunk: GeminiChunk): ProviderEvent[] {
   }
 
   for (const part of candidate?.content?.parts ?? []) {
-    if (part.functionCall?.name) {
+    const inlineData = part.inlineData || (part as any).inline_data;
+    if (inlineData?.data) {
+      const mimeType = inlineData.mimeType || inlineData.mime_type || 'image/png';
+      const base64 = String(inlineData.data);
+      events.push({ type: 'image', mediaType: mimeType, base64 });
+      events.push({ type: 'text', text: `\n\n![Generated Image](data:${mimeType};base64,${base64})\n\n` });
+    } else if (part.functionCall?.name) {
       const id = `call_${randomBytes(8).toString('hex')}`;
       events.push({ type: 'tool_start', id, name: part.functionCall.name });
       events.push({ type: 'tool_delta', id, argsDelta: JSON.stringify(part.functionCall.args ?? {}) });

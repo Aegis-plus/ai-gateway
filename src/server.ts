@@ -7,10 +7,10 @@ import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import type { Store } from './store.ts';
 import { MODEL_CATALOG, getModelCatalog, resolveModel, registerDynamicModels, syncModelsFromRemote } from './models.ts';
-import { sanitizeAccount, sanitizeApiKey, ProviderError, type Account, type AntigravityCreds } from './types.ts';
+import { sanitizeAccount, sanitizeApiKey, ProviderError, type Account, type AntigravityCreds, type CoreRequest, type CoreContent } from './types.ts';
 import { accountsFor, startStreamWithRotation } from './pool.ts';
 import { refreshAccountQuota, refreshAllQuotas } from './quota.ts';
-import { parseOpenAIRequest, RequestFormatError, buildOpenAICompletion, streamOpenAI, openaiCompletionId } from './openai.ts';
+import { parseOpenAIRequest, RequestFormatError, buildOpenAICompletion, streamOpenAI, openaiCompletionId, parseDataUrl } from './openai.ts';
 import { parseAnthropicRequest, buildAnthropicMessage, streamAnthropic } from './anthropic.ts';
 import { EventAggregator } from './aggregate.ts';
 import { startDeviceLogin, getLoginSession, importIdeToken, forceRefreshToken as kiroForceRefreshToken } from './auth/kiro.ts';
@@ -219,6 +219,156 @@ export function createGatewayServer(store: Store): ReturnType<typeof createServe
       }
       if (openaiFormat) json(res, 200, buildOpenAICompletion(agg.result(), core.model, openaiCompletionId()));
       else json(res, 200, buildAnthropicMessage(agg.result(), core.model));
+      return;
+    }
+
+    if (method === 'POST' && (path === '/v1/images/generations' || path === '/images/generations')) {
+      const body = await readBody(req);
+      const prompt = typeof body?.prompt === 'string' ? body.prompt.trim() : '';
+      if (!prompt) {
+        json(res, 400, { error: { message: '`prompt` is required.', type: 'invalid_request_error' } });
+        return;
+      }
+      const modelName = typeof body?.model === 'string' && body.model.trim() ? body.model.trim() : 'agy/gemini-3.1-flash-image';
+      const entry = resolveModel(modelName) || resolveModel('gemini-3.1-flash-image');
+      if (!entry) {
+        json(res, 404, { error: { message: `Unknown image model: ${modelName}`, type: 'invalid_request_error' } });
+        return;
+      }
+      if (accountsFor(store, entry.provider).length === 0) {
+        json(res, 503, { error: { message: `No ${entry.provider} account configured — add one in the dashboard.`, type: 'server_error' } });
+        return;
+      }
+
+      const core: CoreRequest = {
+        model: entry.id,
+        messages: [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+        stream: false,
+      };
+
+      let started;
+      try {
+        started = await startStreamWithRotation(entry, core, store);
+      } catch (err) {
+        const pe = err instanceof ProviderError ? err : new ProviderError('upstream', err instanceof Error ? err.message : String(err));
+        json(res, 502, { error: { message: pe.message, type: 'server_error' } });
+        return;
+      }
+
+      const agg = new EventAggregator();
+      try {
+        for await (const ev of started.events) agg.push(ev);
+      } catch (err) {
+        const pe = err instanceof ProviderError ? err : new ProviderError('upstream', err instanceof Error ? err.message : String(err));
+        json(res, 502, { error: { message: pe.message, type: 'server_error' } });
+        return;
+      }
+
+      const result = agg.result();
+      const imagesData: Array<{ b64_json?: string; url?: string; revised_prompt?: string }> = [];
+
+      for (const img of result.images) {
+        imagesData.push({
+          b64_json: img.base64,
+          url: `data:${img.mediaType};base64,${img.base64}`,
+          revised_prompt: prompt,
+        });
+      }
+
+      if (imagesData.length === 0 && result.text) {
+        const match = /data:([^;,]+);base64,([A-Za-z0-9+/=]+)/s.exec(result.text);
+        if (match) {
+          imagesData.push({
+            b64_json: match[2]!,
+            url: `data:${match[1]};base64,${match[2]}`,
+            revised_prompt: prompt,
+          });
+        }
+      }
+
+      json(res, 200, {
+        created: Math.floor(Date.now() / 1000),
+        data: imagesData,
+      });
+      return;
+    }
+
+    if (method === 'POST' && (path === '/v1/images/edits' || path === '/images/edits')) {
+      const body = await readBody(req);
+      const prompt = typeof body?.prompt === 'string' ? body.prompt.trim() : '';
+      const imageRaw = typeof body?.image === 'string' ? body.image : '';
+      if (!prompt) {
+        json(res, 400, { error: { message: '`prompt` is required.', type: 'invalid_request_error' } });
+        return;
+      }
+      const modelName = typeof body?.model === 'string' && body.model.trim() ? body.model.trim() : 'agy/gemini-3.1-flash-image';
+      const entry = resolveModel(modelName) || resolveModel('gemini-3.1-flash-image');
+      if (!entry) {
+        json(res, 404, { error: { message: `Unknown image model: ${modelName}`, type: 'invalid_request_error' } });
+        return;
+      }
+      if (accountsFor(store, entry.provider).length === 0) {
+        json(res, 503, { error: { message: `No ${entry.provider} account configured — add one in the dashboard.`, type: 'server_error' } });
+        return;
+      }
+
+      const contentParts: CoreContent[] = [];
+      const parsedImage = parseDataUrl(imageRaw);
+      if (parsedImage) {
+        contentParts.push({ type: 'image', mediaType: parsedImage.mediaType, base64: parsedImage.base64 });
+      }
+      contentParts.push({ type: 'text', text: prompt });
+
+      const core: CoreRequest = {
+        model: entry.id,
+        messages: [{ role: 'user', content: contentParts }],
+        stream: false,
+      };
+
+      let started;
+      try {
+        started = await startStreamWithRotation(entry, core, store);
+      } catch (err) {
+        const pe = err instanceof ProviderError ? err : new ProviderError('upstream', err instanceof Error ? err.message : String(err));
+        json(res, 502, { error: { message: pe.message, type: 'server_error' } });
+        return;
+      }
+
+      const agg = new EventAggregator();
+      try {
+        for await (const ev of started.events) agg.push(ev);
+      } catch (err) {
+        const pe = err instanceof ProviderError ? err : new ProviderError('upstream', err instanceof Error ? err.message : String(err));
+        json(res, 502, { error: { message: pe.message, type: 'server_error' } });
+        return;
+      }
+
+      const result = agg.result();
+      const imagesData: Array<{ b64_json?: string; url?: string; revised_prompt?: string }> = [];
+
+      for (const img of result.images) {
+        imagesData.push({
+          b64_json: img.base64,
+          url: `data:${img.mediaType};base64,${img.base64}`,
+          revised_prompt: prompt,
+        });
+      }
+
+      if (imagesData.length === 0 && result.text) {
+        const match = /data:([^;,]+);base64,([A-Za-z0-9+/=]+)/s.exec(result.text);
+        if (match) {
+          imagesData.push({
+            b64_json: match[2]!,
+            url: `data:${match[1]};base64,${match[2]}`,
+            revised_prompt: prompt,
+          });
+        }
+      }
+
+      json(res, 200, {
+        created: Math.floor(Date.now() / 1000),
+        data: imagesData,
+      });
       return;
     }
 

@@ -444,6 +444,9 @@ const ALIAS_MAP: Record<string, { id: string; provider: ProviderId; upstream: st
   'gemini-3-pro': { id: 'agy/gemini-3.1-pro', provider: 'antigravity', upstream: 'gemini-3.1-pro-high' },
   'gemini-3-flash-agent': { id: 'agy/gemini-3-flash', provider: 'antigravity', upstream: 'gemini-3-flash' },
   'gemini-pro-agent': { id: 'agy/gemini-3.1-pro', provider: 'antigravity', upstream: 'gemini-3.1-pro-high' },
+  'gemini-3.1-flash-image-preview': { id: 'agy/gemini-3.1-flash-image', provider: 'antigravity', upstream: 'gemini-3.1-flash-image' },
+  'imagen-3': { id: 'agy/gemini-3.1-flash-image', provider: 'antigravity', upstream: 'gemini-3.1-flash-image' },
+  'dall-e-3': { id: 'agy/gemini-3.1-flash-image', provider: 'antigravity', upstream: 'gemini-3.1-flash-image' },
   'gpt-oss-120b-medium': { id: 'agy/gpt-oss-120b', provider: 'antigravity', upstream: 'gpt-oss-120b-medium' },
 };
 

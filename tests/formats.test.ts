@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { parseOpenAIRequest, buildOpenAICompletion } from '../src/openai.ts';
 import { parseAnthropicRequest, buildAnthropicMessage } from '../src/anthropic.ts';
 import { EventAggregator } from '../src/aggregate.ts';
-import { cleanGeminiSchema, toGeminiContents, toGeminiTools } from '../src/providers/antigravity.ts';
+import { cleanGeminiSchema, toGeminiContents, toGeminiTools, geminiChunkToEvents } from '../src/providers/antigravity.ts';
 import { resolveModel } from '../src/models.ts';
 import type { ProviderEvent } from '../src/types.ts';
 
@@ -304,6 +304,95 @@ describe('toGeminiContents', () => {
     expect(tools.tools).toBeDefined();
     expect(tools.tools).toHaveLength(1);
     expect(tools.toolConfig).toEqual({ functionCallingConfig: { mode: 'VALIDATED' } });
+  });
+});
+
+describe('Image Model Support (gemini-3.1-flash-image)', () => {
+  it('resolves image model aliases to agy/gemini-3.1-flash-image', () => {
+    const direct = resolveModel('agy/gemini-3.1-flash-image');
+    expect(direct).toMatchObject({ id: 'agy/gemini-3.1-flash-image', provider: 'antigravity', upstream: 'gemini-3.1-flash-image' });
+
+    const bare = resolveModel('gemini-3.1-flash-image');
+    expect(bare).toMatchObject({ id: 'agy/gemini-3.1-flash-image', provider: 'antigravity', upstream: 'gemini-3.1-flash-image' });
+
+    const preview = resolveModel('gemini-3.1-flash-image-preview');
+    expect(preview).toMatchObject({ provider: 'antigravity', upstream: 'gemini-3.1-flash-image' });
+  });
+
+  it('supports text2img request conversion into Gemini contents', () => {
+    const core = parseOpenAIRequest({
+      model: 'agy/gemini-3.1-flash-image',
+      messages: [{ role: 'user', content: 'Generate an oil painting of a cybernetic tiger' }],
+    });
+
+    const contents = toGeminiContents(core.messages);
+    expect(contents).toHaveLength(1);
+    expect(contents[0]!.role).toBe('user');
+    expect(contents[0]!.parts).toEqual([{ text: 'Generate an oil painting of a cybernetic tiger' }]);
+  });
+
+  it('supports img2img request conversion with both image and text parts into Gemini contents', () => {
+    const core = parseOpenAIRequest({
+      model: 'agy/gemini-3.1-flash-image',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Add neon sunglasses to this character' },
+            { type: 'image_url', image_url: { url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' } },
+          ],
+        },
+      ],
+    });
+
+    const contents = toGeminiContents(core.messages);
+    expect(contents).toHaveLength(1);
+    expect(contents[0]!.role).toBe('user');
+    expect(contents[0]!.parts).toHaveLength(2);
+    expect(contents[0]!.parts[0]).toEqual({ text: 'Add neon sunglasses to this character' });
+    expect(contents[0]!.parts[1]).toEqual({
+      inlineData: {
+        mimeType: 'image/png',
+        data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      },
+    });
+  });
+
+  it('parses inlineData from Gemini chunk into image and markdown events', () => {
+    const events = geminiChunkToEvents({
+      response: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: 'image/png',
+                    data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+                  },
+                },
+              ],
+            },
+            finishReason: 'STOP',
+          },
+        ],
+      },
+    });
+
+    expect(events.some((e) => e.type === 'image')).toBe(true);
+    const imgEv = events.find((e) => e.type === 'image') as { type: 'image'; mediaType: string; base64: string };
+    expect(imgEv.mediaType).toBe('image/png');
+    expect(imgEv.base64).toContain('iVBORw0KGgoAAAANSU');
+
+    // Also emits markdown image text for chat completions clients
+    const textEv = events.find((e) => e.type === 'text') as { type: 'text'; text: string };
+    expect(textEv.text).toContain('![Generated Image](data:image/png;base64,');
+
+    // EventAggregator collects both images and text
+    const agg = new EventAggregator();
+    for (const ev of events) agg.push(ev);
+    expect(agg.result().images).toHaveLength(1);
+    expect(agg.result().images[0]!.base64).toBe(imgEv.base64);
   });
 });
 

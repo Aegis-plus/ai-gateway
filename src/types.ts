@@ -42,6 +42,7 @@ export interface CoreRequest {
 
 export type ProviderEvent =
   | { type: 'text'; text: string }
+  | { type: 'image'; mediaType: string; base64: string }
   | { type: 'tool_start'; id: string; name: string }
   | { type: 'tool_delta'; id: string; argsDelta: string }
   | { type: 'tool_end'; id: string }

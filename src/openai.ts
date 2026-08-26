@@ -57,7 +57,7 @@ export function parseOpenAIRequest(body: any): CoreRequest {
     } else if (Array.isArray(msg.content)) {
       for (const part of msg.content as OpenAIPart[]) {
         if (part.type === 'text' && part.text) blocks.push({ type: 'text', text: part.text });
-        else if (part.type === 'image_url' && part.image_url?.url?.startsWith('data:')) {
+        else if ((part.type === 'image_url' || part.type === 'image') && part.image_url?.url) {
           const parsed = parseDataUrl(part.image_url.url);
           if (parsed) blocks.push({ type: 'image', mediaType: parsed.mediaType, base64: parsed.base64 });
         }
@@ -112,10 +112,15 @@ function safeParseJson(text: string): unknown {
   }
 }
 
-function parseDataUrl(url: string): { mediaType: string; base64: string } | undefined {
-  const m = /^data:([^;,]+);base64,(.+)$/s.exec(url);
-  if (!m) return undefined;
-  return { mediaType: m[1]!, base64: m[2]! };
+export function parseDataUrl(url: string): { mediaType: string; base64: string } | undefined {
+  if (!url || typeof url !== 'string') return undefined;
+  const trimmed = url.trim();
+  const m = /^data:([^;,]+);base64,(.+)$/s.exec(trimmed);
+  if (m) return { mediaType: m[1]!, base64: m[2]!.trim() };
+  if (/^[A-Za-z0-9+/=]+$/.test(trimmed) && trimmed.length > 50) {
+    return { mediaType: 'image/png', base64: trimmed };
+  }
+  return undefined;
 }
 
 // ---- responses ----
@@ -126,6 +131,13 @@ export function openaiCompletionId(): string {
 
 export function buildOpenAICompletion(agg: Aggregated, model: string, id: string): object {
   const message: Record<string, unknown> = { role: 'assistant', content: agg.text || null };
+  if (agg.images && agg.images.length > 0) {
+    message.images = agg.images.map((img, i) => ({
+      index: i,
+      type: 'image_url',
+      image_url: { url: `data:${img.mediaType};base64,${img.base64}` },
+    }));
+  }
   if (agg.toolCalls.length > 0) {
     message.tool_calls = agg.toolCalls.map((c, i) => ({
       id: c.id,
@@ -186,6 +198,9 @@ export async function streamOpenAI(
       switch (ev.type) {
         case 'text':
           send(chunk({ content: ev.text }));
+          break;
+        case 'image':
+          send(chunk({ images: [{ type: 'image_url', image_url: { url: `data:${ev.mediaType};base64,${ev.base64}` } }] }));
           break;
         case 'tool_start': {
           const index = toolIndex.size;

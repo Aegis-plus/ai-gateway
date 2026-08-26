@@ -9,8 +9,14 @@ export interface AggregatedToolCall {
   argsRaw: string;
 }
 
+export interface AggregatedImage {
+  mediaType: string;
+  base64: string;
+}
+
 export interface Aggregated {
   text: string;
+  images: AggregatedImage[];
   toolCalls: AggregatedToolCall[];
   usage: { inputTokens?: number; outputTokens?: number };
   finish: 'stop' | 'tool_use' | 'length';
@@ -18,13 +24,16 @@ export interface Aggregated {
 }
 
 export class EventAggregator {
-  private agg: Aggregated = { text: '', toolCalls: [], usage: {}, finish: 'stop', credits: [] };
+  private agg: Aggregated = { text: '', images: [], toolCalls: [], usage: {}, finish: 'stop', credits: [] };
   private openTools = new Map<string, AggregatedToolCall>();
 
   push(ev: ProviderEvent): void {
     switch (ev.type) {
       case 'text':
         this.agg.text += ev.text;
+        break;
+      case 'image':
+        this.agg.images.push({ mediaType: ev.mediaType, base64: ev.base64 });
         break;
       case 'tool_start':
         this.agg.toolCalls.push({ id: ev.id, name: ev.name, argsRaw: '' });
